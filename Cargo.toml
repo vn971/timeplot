@@ -4,4 +4,5 @@ version = "0.1.0"
 # authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 
 [dependencies]
-rusqlite="*"
+#rusqlite="0.10.0"
+#regex = "0.2"

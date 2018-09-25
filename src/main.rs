@@ -1,85 +1,50 @@
-extern crate rusqlite;
-extern crate time;
+#!/usr/bin/env run-cargo-script
 
-//use time::Timespec;
-//use rusqlite::Connection;
-//use std::process::Output;
+//use std::io::prelude::*;
 use std::process::Command;
+//use std::process::Stdio;
+//use std::{thread, time};
 
-
-//#[derive(Debug)]
-//struct Instance {
-//    id: u64,
-//    app_name: String,
-//    desktop_number: u8,
-//    created_at: Timespec,
-//    idle_time_millis: u64,
-//    percent_work: u8,
-//    percent_fun: u8,
-//    percent_personal: u8,
-//    percent_idle: u8,
-//}
-
-//fn execute<'a>(str: &'a str) -> &str {
-//    let output = Command::new(str).output().unwrap();
-//    assert!(output.status.success());
-//    let result = String::from_utf8(output.stdout).unwrap();
-//    let r2 = result.trim();
-//    println!("{}", r2);
-//    println!("{}", r2);
-//    return "";//"" r2
-//}
-
-trait CheckedStdout {
-	fn stdout_option(&self) -> Option<Vec<u8>>;
-}
-
-//impl CheckedStdout for Output {
-//    fn stdout_option(&self) -> Option<Vec<u8>> {
-//        if self.status.success() {
-//            Some(self.stdout)
-//        } else {
-//            None
-//        }
-//    Command::new("true").output().unwrap().stdout_option();
-//        // unimplemented!();
-//    }
-//}
+//extern crate regex;
 
 fn main() {
-	std::env::set_var("DISPLAY", ":0");
-	std::env::set_var("DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus");
 	println!("script launched, args: {:?}", std::env::args().skip(1).collect::<String>());
-	//	assert!(command.status.success());
-	//	let s = String::from_utf8(command.stdout).unwrap();
-	//	let s = s.trim();
-	//	println!("xprintidle string: {}", s);
-	//	let idle_time: u64 = s.parse().unwrap();
-	//	println!("idle_time: {}", idle_time);
 
 	let idle_time: u64 = {
 		let idle_time = Command::new("xprintidle").output().unwrap();
 		assert!(idle_time.status.success());
-		let s = String::from_utf8(idle_time.stdout).unwrap();
-		let s = s.trim();
-		println!("xprintidle string: {}", s);
-		s.parse::<u64>().unwrap()
+		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
+		idle_time.trim().parse::<u64>().unwrap()
 	};
 	println!("idle_time: {}", idle_time);
 
-	let window_name = {
-		let command = Command::new("xdotool").arg("getactivewindow").arg("get_desktop").arg("getwindowname").output().unwrap();
+	let (desktop_number, window_name) = {
+		let command = Command::new("xdotool")
+			.arg("getactivewindow")
+			.arg("get_desktop")
+			.arg("getwindowname")
+			.output().unwrap();
 		assert!(command.status.success());
-		let s = String::from_utf8(command.stdout).unwrap();
-		s
-//		let ss = s.trim();
+		let stdout: String = String::from_utf8(command.stdout).unwrap();
+		let stdout: &str = stdout.as_ref();
+		let split: Vec<&str> = stdout.split('\n').collect();
+		(split[0].parse::<u32>().unwrap(), split[1].to_string())
 	};
-	println!("window_name: {}", window_name);
+	eprintln!("We're on desktop {:?} and our window is {:?}", desktop_number, window_name);
 
-	println!("idle_time: {}", idle_time);
+//	let name_contains_closure = |pattern| regex::Regex::new(pattern).unwrap().is_match(test);
 
+//	fn nameContains(pattern: &str) -> bool {
+//		regex::Regex::new(pattern).unwrap().is_match(window_and_desktop);
+//		return true
+//	}
 
 	//	let command = Command::new("xprintidle").output().unwrap();
-}
 
-//	val windowInfo: String = "xdotool getactivewindow get_desktop getwindowname".!!
+	//	let window_name = Command::new("xdotool")
+	//			.arg("getactivewindow").arg("getwindowname")
+	//			.output().unwrap().stdout;
+	//	let window_name = String::from_utf8_lossy(&window_name);
+	//	let window_name = window_name.trim();
+	//	println!("current window: {}", window_name);
+}
