@@ -5,6 +5,9 @@ use std::io::prelude::*;
 use std::process::Command;
 use std::time::SystemTime;
 use std::fs::OpenOptions;
+use std::path::Path;
+use std::fs::File;
+use std::io::BufReader;
 
 extern crate gnuplot;
 
@@ -29,28 +32,63 @@ fn do_plot(time: u64) {
 		.lines(&x, &work, &[Caption(""), Color("black"), PointSize(1.0), PointSymbol('*')])
 		.label(&format!("{:?}", time), Graph(0.0), Graph(-0.02), &[])
 		.set_y_range(Fix(-0.1), Fix(10.1));
-	 fg.echo_to_file(home.join(".cache/timeplot/timeplot.gnuplot").to_str().unwrap());
+	fg.echo_to_file(home.join(".cache/timeplot/gnuplot").to_str().unwrap());
 	fg.show();
 }
 
-fn get_category(_desktop_number: u32, _window_name: &str) -> String {
-	"skip".to_string()
+fn get_category(desktop_number: u32, window_name: &str) -> String {
+	let window_name = window_name.to_lowercase();
+	let window_name = window_name.as_str();
+	let home = std::env::home_dir().unwrap();
+	let home = home.as_path();
+	// let cat_decider_env = std::env::var_os("timeplot_category_decider");
+	let cat_decider = if Path::new(&home.join(".config/timeplot/category_decider")).exists() {
+		Some(home.join(".config/timeplot/category_decider"))
+	} else {
+		None
+	};
+	if let Some(cat_decider) = cat_decider {
+		let child = Command::new(cat_decider).output().unwrap();
+		assert!(child.status.success());
+		String::from_utf8(child.stdout).unwrap()
+	} else {
+		let rules_file = File::open(home.join(".config/timeplot/rules_simple.txt")).unwrap();
+		let rules_file = BufReader::new(rules_file);
+
+		for line in rules_file.lines() {
+			let line = line.unwrap();
+			if line.starts_with("#") || line.is_empty() {
+				continue;
+			}
+			let split: Vec<&str> = line.splitn(3, ' ').collect();
+			let category = *split.get(0).expect(&format!("Cannot extract category for line {}", line));
+			let desktop_pattern = *split.get(1).expect(
+				&format!("Cannot extract desktop number for line {}", line)
+			);
+			let window_pattern: &str = *split.get(2).unwrap_or(&"");
+			let window_pattern = window_pattern.to_lowercase();
+			let window_pattern = window_pattern.as_str();
+			if (desktop_pattern == "*" || desktop_pattern == desktop_number.to_string())
+				&& window_name.contains(window_pattern) {
+				return category.to_string();
+			}
+		}
+		panic!("Could not find any category for desktop {}, window {}", desktop_number, window_name);
+	}
 }
 
 
 fn do_save_current(time: u64) {
-	let idle_time: u64 = {
+	{
+		// TODO: ignore xprintidle flag
 		let idle_time = Command::new("xprintidle").output().unwrap();
 		assert!(idle_time.status.success());
 		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
-		idle_time.trim().parse::<u64>().unwrap()
-	};
-	eprintln!("idle_time: {}", idle_time);
-	if idle_time > 1000 * 60 * 3 { // 3min
-		return;
-	}
-	{
-		assert!(1 == 1);
+		let idle_time = idle_time.trim().parse::<u64>().unwrap();
+		eprintln!("idle_time: {}", idle_time);
+		if idle_time > 1000 * 60 * 3 { // 3min
+			return;
+		}
 	}
 
 	let (desktop_number, window_name) = {

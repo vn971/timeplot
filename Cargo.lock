@@ -4,8 +4,8 @@ version = "0.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "screenshooter-rs"
-version = "0.1.0"
+name = "timeplot"
+version = "0.3.0"
 dependencies = [
  "gnuplot 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
