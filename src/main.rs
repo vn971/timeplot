@@ -156,7 +156,7 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 			if line.starts_with("#") || line.is_empty() {
 				continue;
 			}
-			let split: Vec<&str> = line.splitn(3, ' ').collect();
+			let split: Vec<&str> = line.splitn(2, ' ').collect();
 			let parse_error = format!("Cannot parse ~/.config/timeplot/rules_simple.txt, line: {}", line);
 			let category = *split.get(0).expect(&parse_error);
 			let window_pattern = *split.get(1).unwrap_or(&"");
