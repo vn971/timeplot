@@ -1,2 +1,22 @@
-work Intellij
-personal Thunderbird
+work intellij
+work emacs
+work kate
+work Stack Overflow
+work rust
+work scala
+
+personal audacious
+personal diaspora
+personal telegram
+personal timeplot
+
+fun wesnoth
+fun hedgewars
+fun supertuxkart
+fun smplayer
+
+# if nothing else has matched:
+fun Mozilla Firefox
+personal thunderbird
+
+skip

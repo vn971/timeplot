@@ -2,13 +2,12 @@
 name = "timeplot"
 version = "0.3.0"
 authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
+license="GPL-3.0-or-later"
 
 [dependencies]
 gnuplot = "0.0.26"
-#log = "0.4"
-#env_logger = "0.5.13"
-#rusqlite="0.10.0"
-#regex = "0.2"
+fs2 = "0.4.3"
+chrono = "0.4"
 
 
 [profile.release]
