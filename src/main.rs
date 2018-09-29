@@ -28,7 +28,6 @@ struct LogEntry {
 }
 
 const FILE_SEEK: u64 = 100_000;
-//const PLOT_DAYS_ZOOM: u64 = 5;
 const PLOT_DAYS: u64 = 14;
 const PLOT_HEIGHT_SCALE: f64 = 10.0;
 const WINDOW_MAX_LENGTH: usize = 120;
@@ -48,6 +47,7 @@ fn parse_log_line(line: &str) -> LogEntry {
 
 struct CategoryData {
 	category_name: String,
+	color: String,
 	value: Option<f32>,
 	points: Vec<f32>,
 }
@@ -64,7 +64,7 @@ fn do_plot() {
 	let log_file = File::open(home.join(".local/share/timeplot/log.log")).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
-	// seek forward by FILE_SEEK (100Kb) until we reach recent enough entries
+	// seek forward until we reach entries
 	let mut pos = 0;
 	loop {
 		pos += FILE_SEEK;
@@ -78,25 +78,29 @@ fn do_plot() {
 		}
 	}
 
-	let mut lines: Vec<_> = log_file.lines().map(|l| parse_log_line(&l.unwrap())).collect();
-	lines.reverse();
-
 	let mut categories: Vec<CategoryData> = Vec::new();
 	categories.push(CategoryData {
 		category_name: "work".to_string(),
+		color: "black".to_string(),
 		value: None,
 		points: Vec::new(),
 	});
 	categories.push(CategoryData {
 		category_name: "personal".to_string(),
+		color: "orange".to_string(),
 		value: None,
 		points: Vec::new(),
 	});
 	categories.push(CategoryData {
 		category_name: "fun".to_string(),
+		color: "red".to_string(),
 		value: None,
 		points: Vec::new(),
 	});
+
+	let mut lines: Vec<_> = log_file.lines().map(|l| parse_log_line(&l.unwrap())).collect();
+	lines.reverse();
+
 	let mut last_time = time_now;
 	let mut x_coord = Vec::new();
 	for line in lines {
@@ -104,8 +108,6 @@ fn do_plot() {
 		let time_diff = last_time - min(line.time, last_time); // TODO
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp();
 		let weight_new = 1.0 - weight_old;
-//		let weight_old = 0.9;
-//		let weight_new = 0.1;
 		for category in categories.iter_mut() {
 			let new_value = if category.value.is_some() || line.category == category.category_name {
 				let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
@@ -116,26 +118,21 @@ fn do_plot() {
 			};
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
-			// eprintln!("awesome category {}, line {}", &category.category_name, line.time);
 		}
 		x_coord.push(line.time);
-		// eprintln!("awesome line: {:?}", line.time);
 		last_time = line.time;
 	}
 
-	let work = categories.get(0).unwrap();
-	let personal = &categories.get(1).unwrap();
-	let fun = &categories.get(2).unwrap();
 	let mut figure = Figure::new();
 	figure.set_terminal("svg", svg_file.to_str().unwrap());
-	figure.axes2d()
-		.set_x_ticks(None, &[], &[])
-		.set_y_ticks(None, &[], &[])
-		.set_border(false, &[], &[])
-		.lines(&x_coord, &work.points, &[Caption(""), Color("black"), PointSize(1.0), PointSymbol('*')])
-		.lines(&x_coord, &personal.points, &[Caption(""), Color("orange"), PointSize(1.0), PointSymbol('*')])
-		.lines(&x_coord, &fun.points, &[Caption(""), Color("red"), PointSize(1.0), PointSymbol('*')])
-		.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE));
+	for category in categories {
+		figure.axes2d()
+			.set_x_ticks(None, &[], &[])
+			.set_y_ticks(None, &[], &[])
+			.set_border(false, &[], &[])
+			.lines(&x_coord, &category.points, &[Caption(""), Color(&category.color), PointSize(1.0), PointSymbol('*')])
+			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE));
+	}
 	figure.echo_to_file(home.join(".cache/timeplot/gnuplot").to_str().unwrap());
 	figure.show();
 }
@@ -176,7 +173,7 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 
 fn do_save_current() {
 	{
-		// TODO: ignore xprintidle flag
+		// TODO: allowing ignore xprintidle
 		let idle_time = Command::new("xprintidle").output().unwrap();
 		assert!(idle_time.status.success());
 		let idle_time = String::from_utf8(idle_time.stdout).unwrap();

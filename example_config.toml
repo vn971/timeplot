@@ -1,0 +1,12 @@
+[category.work]
+color="black"
+
+[category.personal]
+color="orange"
+
+[category.fun]
+color="red"
+command=["", ""]
+
+[category.skip]
+disable=true

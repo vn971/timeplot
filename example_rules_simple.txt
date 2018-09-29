@@ -15,8 +15,10 @@ fun hedgewars
 fun supertuxkart
 fun smplayer
 
-# if nothing else has matched:
-fun Mozilla Firefox
+# if nothing else matched:
+work  at master 
+work cargo
 personal thunderbird
+fun Mozilla Firefox
 
 skip

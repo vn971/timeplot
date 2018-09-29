@@ -5,10 +5,13 @@ authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 license="GPL-3.0-or-later"
 
 [dependencies]
-gnuplot = "0.0.26"
-fs2 = "0.4.3"
 chrono = "0.4"
+fs2 = "0.4.3"
+gnuplot = "0.0.26"
 
+[dependencies.config]
+version = "0.9"
+default-features = false
 
 [profile.release]
 lto = true
