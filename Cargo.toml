@@ -5,14 +5,11 @@ authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 
 [dependencies]
 gnuplot = "0.0.26"
+#log = "0.4"
+#env_logger = "0.5.13"
 #rusqlite="0.10.0"
 #regex = "0.2"
 
 
 [profile.release]
 lto = true
-#rpath = false
-
-#
-# build with `cargo build --target=x86_64-unknown-linux-musl --release`
-#

@@ -1,1 +1,7 @@
 target
+
+#### helper symlinks for development. For example:
+#### ln -s ~/.local/share/timeplot .local
+/.cache
+/.config
+/.local

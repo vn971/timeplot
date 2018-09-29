@@ -12,8 +12,9 @@ use std::io::BufReader;
 extern crate gnuplot;
 
 
-fn do_plot(time: u64) {
+fn do_plot() {
 	use gnuplot::*;
+	let height_scale = 10.0; // TODO: parse from config
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
 	let svg_file = home.join(".cache/timeplot/timeplot.svg");
@@ -30,8 +31,7 @@ fn do_plot(time: u64) {
 		.set_border(false, &[], &[])
 		.lines(&x, &skip, &[Caption(""), Color("orange"), PointSize(1.0), PointSymbol('*')])
 		.lines(&x, &work, &[Caption(""), Color("black"), PointSize(1.0), PointSymbol('*')])
-		.label(&format!("{:?}", time), Graph(0.0), Graph(-0.02), &[])
-		.set_y_range(Fix(-0.1), Fix(10.1));
+		.set_y_range(Fix(-0.1), Fix(height_scale));
 	fg.echo_to_file(home.join(".cache/timeplot/gnuplot").to_str().unwrap());
 	fg.show();
 }
@@ -41,17 +41,12 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 	let window_name = window_name.as_str();
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
-	// let cat_decider_env = std::env::var_os("timeplot_category_decider");
-	let cat_decider = if Path::new(&home.join(".config/timeplot/category_decider")).exists() {
-		Some(home.join(".config/timeplot/category_decider"))
-	} else {
-		None
-	};
-	if let Some(cat_decider) = cat_decider {
-		let child = Command::new(cat_decider).output().unwrap();
+	if Path::new(&home.join(".config/timeplot/category_decider")).exists() {
+		let child = Command::new(home.join(".config/timeplot/category_decider")).output().unwrap();
 		assert!(child.status.success());
 		String::from_utf8(child.stdout).unwrap()
 	} else {
+		// TODO: create rules_simple.txt if it does not exist
 		let rules_file = File::open(home.join(".config/timeplot/rules_simple.txt")).unwrap();
 		let rules_file = BufReader::new(rules_file);
 
@@ -61,14 +56,13 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 				continue;
 			}
 			let split: Vec<&str> = line.splitn(3, ' ').collect();
-			let category = *split.get(0).expect(&format!("Cannot extract category for line {}", line));
-			let desktop_pattern = *split.get(1).expect(
-				&format!("Cannot extract desktop number for line {}", line)
-			);
+			let parse_error = format!("Cannot parse ~/.config/timeplot/rules_simple.txt, line: {}", line);
+			let category = *split.get(0).expect(&parse_error);
+			let desktop_pattern = *split.get(1).expect(&parse_error);
 			let window_pattern: &str = *split.get(2).unwrap_or(&"");
 			let window_pattern = window_pattern.to_lowercase();
 			let window_pattern = window_pattern.as_str();
-			if (desktop_pattern == "*" || desktop_pattern == desktop_number.to_string())
+			if (desktop_pattern == "-" || desktop_pattern == desktop_number.to_string())
 				&& window_name.contains(window_pattern) {
 				return category.to_string();
 			}
@@ -78,7 +72,7 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 }
 
 
-fn do_save_current(time: u64) {
+fn do_save_current() {
 	{
 		// TODO: ignore xprintidle flag
 		let idle_time = Command::new("xprintidle").output().unwrap();
@@ -104,6 +98,8 @@ fn do_save_current(time: u64) {
 		(split[0].parse::<u32>().unwrap(), window_name)
 	};
 	eprintln!("We're on desktop {} and our window is {}", desktop_number, window_name);
+	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
+	std::env::set_var("WINDOW_NAME", &window_name);
 
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
@@ -111,7 +107,7 @@ fn do_save_current(time: u64) {
 		.append(true).create(true)
 		.open(home.join(".local/share/timeplot/log.log")).unwrap();
 	writeln!(file, "{} {} {} {}",
-		time,
+		std::time::SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
 		get_category(desktop_number, &window_name),
 		desktop_number,
 		window_name
@@ -124,12 +120,6 @@ fn main() {
 
 	//const readme: &'static str = include_str!("../README.txt");
 
-	//if std::env::args().nth(1) == Some("--help".to_string()) {
-	//	eprintln!("");
-	//	return;
-	//}
-	// TODO: parse args
-
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
 	std::fs::create_dir_all(home.join(".config/timeplot")).unwrap();
@@ -137,11 +127,14 @@ fn main() {
 	std::fs::create_dir_all(home.join(".local/share/timeplot")).unwrap();
 	// TODO: take file lock
 
-	let time = std::time::SystemTime::now();
-	let time = time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+	// TODO: add XDG autostart. After explicit approval only?
 
-	do_save_current(time);
-	do_plot(time);
+	loop {
+		do_save_current();
+		do_plot();
+		let duration = std::time::Duration::from_millis(1000*60*5); // TODO: configuration
+		std::thread::sleep(duration);
+	}
 
 //	let name_contains_closure = |pattern| regex::Regex::new(pattern).unwrap().is_match(test);
 
