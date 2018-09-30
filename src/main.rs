@@ -106,7 +106,7 @@ fn do_plot() {
 	for line in lines {
 		if line.time < min_time { continue; }
 		let time_diff = last_time - min(line.time, last_time); // TODO
-		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp();
+		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
 		for category in categories.iter_mut() {
 			let new_value = if category.value.is_some() || line.category == category.category_name {
@@ -138,6 +138,17 @@ fn do_plot() {
 }
 
 fn get_category(desktop_number: u32, window_name: &str) -> String {
+	{
+		// TODO: allow ignoring xprintidle
+		let idle_time = Command::new("xprintidle").output().unwrap();
+		assert!(idle_time.status.success());
+		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
+		let idle_time = idle_time.trim().parse::<u64>().unwrap() / 1000;
+		if idle_time > 60 * 3 { // 3min
+			eprintln!("idle time: {}", idle_time);
+			return "skip".to_string();
+		}
+	}
 	let window_name = window_name.to_lowercase();
 	let window_name = window_name.as_str();
 	let home = std::env::home_dir().unwrap();
@@ -172,18 +183,6 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 
 
 fn do_save_current() {
-	{
-		// TODO: allowing ignore xprintidle
-		let idle_time = Command::new("xprintidle").output().unwrap();
-		assert!(idle_time.status.success());
-		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
-		let idle_time = idle_time.trim().parse::<u64>().unwrap() / 1000;
-		if idle_time > 60 * 3 { // 3min
-			eprintln!("skipping log due to idle time: {}", idle_time);
-			return;
-		}
-	}
-
 	let (desktop_number, window_name) = {
 		let command = Command::new("xdotool")
 			.arg("getactivewindow")
@@ -220,7 +219,8 @@ fn do_save_current() {
 fn main() {
 	eprintln!("script launched, args: {:?}", std::env::args().skip(1).collect::<String>());
 
-	//const readme: &'static str = include_str!("../README.txt");
+	// const README: &'static str = include_str!("../README.txt");
+
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
 	std::fs::create_dir_all(home.join(".config/timeplot")).unwrap();

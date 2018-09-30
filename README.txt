@@ -1,4 +1,4 @@
-TimePlot -- personal time tracking & plotting.
+TimePlot -- personal activity tracking & plotting.
 
 ## Installation
 
@@ -15,9 +15,9 @@ TimePlot -- personal time tracking & plotting.
 
 1. Install Rust "musl" target:  rustup target install x86_64-unknown-linux-musl
 2. build with:  cargo build --target=x86_64-unknown-linux-musl --release
-3. shrink the binary size if you're OK to lose some of the backtrace descriptions:
+3. Optionally, compress it:
 ```
-  strip target/x86_64-unknown-linux-musl/release/timeplot
+  upx target/x86_64-unknown-linux-musl/release/timeplot
 ```
 
 
