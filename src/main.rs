@@ -1,5 +1,7 @@
-#!/usr/bin/env run-cargo-script
-//cargo-deps: gnuplot="0.0.26"
+use std::alloc::System;
+
+#[global_allocator]
+static GLOBAL: System = System;
 
 use std::cmp::min;
 use std::fs::File;
