@@ -1,6 +1,12 @@
 #[global_allocator]
 static GLOBAL: std::alloc::System = std::alloc::System;
 
+extern crate fs2;
+extern crate gnuplot;
+extern crate chrono;
+
+use chrono::prelude::*;
+use fs2::FileExt;
 use std::cmp::min;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -9,16 +15,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::process::Command;
-use std::time::SystemTime;
-use chrono::prelude::*;
-
-extern crate fs2;
-extern crate gnuplot;
-extern crate chrono;
-
-use fs2::FileExt;
 use std::time::Duration;
-use chrono::prelude::Utc;
 
 struct LogEntry {
 	time: u64,
@@ -58,8 +55,7 @@ fn do_plot() {
 	let home = home.as_path();
 	let svg_file = home.join(".cache/timeplot/timeplot.svg");
 
-	let time_now = std::time::SystemTime::now()
-		.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = time_now - PLOT_DAYS * 60 * 60 * 24;
 	let log_file = File::open(home.join(".local/share/timeplot/log.log")).unwrap();
 	let mut log_file = BufReader::new(log_file);
@@ -109,17 +105,13 @@ fn do_plot() {
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
 		for category in categories.iter_mut() {
-			let new_value = if category.value.is_some() || line.category == category.category_name {
-				let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-				let old_value = category.value.unwrap_or(0.5);
-				Some(latest * weight_new + old_value * weight_old)
-			} else {
-				None
-			};
+			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
+			let old_value = category.value.unwrap_or(latest);
+			let new_value = Some(latest * weight_new + old_value * weight_old);
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
 		}
-		x_coord.push(line.time);
+		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0);
 		last_time = line.time;
 	}
 
