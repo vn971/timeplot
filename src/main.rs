@@ -1,7 +1,5 @@
-use std::alloc::System;
-
 #[global_allocator]
-static GLOBAL: System = System;
+static GLOBAL: std::alloc::System = std::alloc::System;
 
 use std::cmp::min;
 use std::fs::File;
@@ -113,7 +111,7 @@ fn do_plot() {
 		for category in categories.iter_mut() {
 			let new_value = if category.value.is_some() || line.category == category.category_name {
 				let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-				let old_value = category.value.unwrap_or(latest);
+				let old_value = category.value.unwrap_or(0.5);
 				Some(latest * weight_new + old_value * weight_old)
 			} else {
 				None
@@ -184,20 +182,22 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 }
 
 
+fn get_window_name_and_desktop() -> (String, u32) {
+	let command = Command::new("xdotool")
+		.arg("getactivewindow")
+		.arg("get_desktop")
+		.arg("getwindowname")
+		.output().unwrap();
+	assert!(command.status.success());
+	let stdout = String::from_utf8_lossy(&command.stdout);
+	let split: Vec<&str> = stdout.split('\n').collect();
+	let window_name = split[1].replace("\n", "").as_str().chars()
+		.take(WINDOW_MAX_LENGTH).collect::<String>();
+	(window_name, split[0].parse::<u32>().unwrap())
+}
+
 fn do_save_current() {
-	let (desktop_number, window_name) = {
-		let command = Command::new("xdotool")
-			.arg("getactivewindow")
-			.arg("get_desktop")
-			.arg("getwindowname")
-			.output().unwrap();
-		assert!(command.status.success());
-		let stdout = String::from_utf8_lossy(&command.stdout);
-		let split: Vec<&str> = stdout.split('\n').collect();
-		let window_name = split[1].replace("\n", "").as_str().chars()
-			.take(WINDOW_MAX_LENGTH).collect::<String>();
-		(split[0].parse::<u32>().unwrap(), window_name)
-	};
+	let (window_name, desktop_number) = get_window_name_and_desktop() ;
 	// eprintln!("We're on desktop {} and our window is {}", desktop_number, window_name);
 	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
 	std::env::set_var("WINDOW_NAME", &window_name);
@@ -228,8 +228,9 @@ fn main() {
 	std::fs::create_dir_all(home.join(".config/timeplot")).unwrap();
 	std::fs::create_dir_all(home.join(".cache/timeplot")).unwrap();
 	std::fs::create_dir_all(home.join(".local/share/timeplot")).unwrap();
-	File::open(home.join(".config/timeplot/")).unwrap()
-		.try_lock_exclusive().expect("Another instance of timeplot is already running.");
+
+	let locked_file = File::open(home.join(".config/timeplot")).unwrap();
+	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
 
 	// TODO: add XDG autostart. After explicit approval only?  $XDG_CONFIG_HOME/autostart
 
