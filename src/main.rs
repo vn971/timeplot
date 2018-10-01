@@ -167,8 +167,7 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 				continue;
 			}
 			let split: Vec<&str> = line.splitn(2, ' ').collect();
-			let parse_error = format!("Cannot parse ~/.config/timeplot/rules_simple.txt, line: {}", line);
-			let category = *split.get(0).expect(&parse_error);
+			let category = *split.get(0).unwrap();
 			let window_pattern = *split.get(1).unwrap_or(&"");
 			let window_pattern = window_pattern.to_lowercase();
 			if window_name.contains(&window_pattern) {
