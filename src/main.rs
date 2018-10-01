@@ -30,6 +30,8 @@ const PLOT_HEIGHT_SCALE: f64 = 10.0;
 const WINDOW_MAX_LENGTH: usize = 120;
 const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
 
+const EXAMPLE_RULES_SIMPLE: &'static str = include_str!("../example_rules_simple.txt");
+
 fn parse_log_line(line: &str) -> LogEntry {
 	let split: Vec<&str> = line.splitn(4, ' ').collect();
 	let parse_error = format!("Failed to parse log entry {}", line);
@@ -111,7 +113,7 @@ fn do_plot() {
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
 		}
-		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0);
+		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // allow "days" ticks
 		last_time = line.time;
 	}
 
@@ -150,8 +152,13 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 		assert!(child.status.success());
 		String::from_utf8(child.stdout).unwrap()
 	} else {
-		// TODO: create rules_simple.txt if it does not exist
-		let rules_file = File::open(home.join(".config/timeplot/rules_simple.txt")).unwrap();
+		let rules_path = home.join(".config/timeplot/rules_simple.txt");
+		if Path::new(&rules_path).exists() == false {
+			let mut file = OpenOptions::new().create(true).write(true)
+				.open(&rules_path).unwrap();
+			file.write_all(EXAMPLE_RULES_SIMPLE.as_bytes()).unwrap();
+		}
+		let rules_file = File::open(rules_path).unwrap();
 		let rules_file = BufReader::new(rules_file);
 
 		for line in rules_file.lines() {
@@ -212,8 +219,6 @@ fn do_save_current() {
 
 fn main() {
 	eprintln!("script launched, args: {:?}", std::env::args().skip(1).collect::<String>());
-
-	// const README: &'static str = include_str!("../README.txt");
 
 	let home = std::env::home_dir().unwrap();
 	let home = home.as_path();
