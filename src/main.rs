@@ -4,8 +4,10 @@ static GLOBAL: std::alloc::System = std::alloc::System;
 extern crate fs2;
 extern crate gnuplot;
 extern crate chrono;
+extern crate directories;
 
 use chrono::prelude::*;
+use directories::ProjectDirs;
 use fs2::FileExt;
 use std::cmp::min;
 use std::fs::File;
@@ -29,6 +31,7 @@ const PLOT_DAYS: u64 = 14;
 const PLOT_HEIGHT_SCALE: f64 = 10.0;
 const WINDOW_MAX_LENGTH: usize = 120;
 const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
+const LOG_FILE_NAME: &str = "log.log";
 
 const EXAMPLE_RULES_SIMPLE: &'static str = include_str!("../example_rules_simple.txt");
 
@@ -51,15 +54,12 @@ struct CategoryData {
 	points: Vec<f32>,
 }
 
-fn do_plot() {
+fn do_plot(dirs: &ProjectDirs) {
 	use gnuplot::*;
-	let home = std::env::home_dir().unwrap();
-	let home = home.as_path();
-	let svg_file = home.join(".cache/timeplot/timeplot.svg");
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = time_now - PLOT_DAYS * 60 * 60 * 24;
-	let log_file = File::open(home.join(".local/share/timeplot/log.log")).unwrap();
+	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
 	// seek forward until we reach entries
@@ -118,20 +118,20 @@ fn do_plot() {
 	}
 
 	let mut figure = Figure::new();
-	figure.set_terminal("svg", svg_file.to_str().unwrap());
+	figure.set_terminal("svg", dirs.cache_dir().join("timeplot.svg").to_str().unwrap());
 	for category in categories {
 		figure.axes2d()
 			.set_x_ticks(None, &[], &[])
 			.set_y_ticks(None, &[], &[])
 			.set_border(false, &[], &[])
-			.lines(&x_coord, &category.points, &[Caption(""), Color(&category.color), PointSize(1.0), PointSymbol('*')])
-			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE));
+			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE))
+			.lines(&x_coord, &category.points, &[Caption(""), Color(&category.color), PointSize(1.0), PointSymbol('*')]);
 	}
-	figure.echo_to_file(home.join(".cache/timeplot/gnuplot").to_str().unwrap());
+	figure.echo_to_file(dirs.cache_dir().join("gnuplot").to_str().unwrap());
 	figure.show();
 }
 
-fn get_category(desktop_number: u32, window_name: &str) -> String {
+fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> String {
 	{
 		// TODO: allow ignoring xprintidle
 		let idle_time = Command::new("xprintidle").output().unwrap();
@@ -145,14 +145,12 @@ fn get_category(desktop_number: u32, window_name: &str) -> String {
 	}
 	let window_name = window_name.to_lowercase();
 	let window_name = window_name.as_str();
-	let home = std::env::home_dir().unwrap();
-	let home = home.as_path();
-	if Path::new(&home.join(".config/timeplot/category_decider")).exists() {
-		let child = Command::new(home.join(".config/timeplot/category_decider")).output().unwrap();
+	if Path::new(&dirs.config_dir().join("category_decider")).exists() {
+		let child = Command::new(dirs.config_dir().join("category_decider")).output().unwrap();
 		assert!(child.status.success());
 		String::from_utf8(child.stdout).unwrap()
 	} else {
-		let rules_path = home.join(".config/timeplot/rules_simple.txt");
+		let rules_path = dirs.config_dir().join("rules_simple.txt");
 		if Path::new(&rules_path).exists() == false {
 			let mut file = OpenOptions::new().create(true).write(true)
 				.open(&rules_path).unwrap();
@@ -194,20 +192,20 @@ fn get_window_name_and_desktop() -> (String, u32) {
 	(window_name, split[0].parse::<u32>().unwrap())
 }
 
-fn do_save_current() {
+fn do_save_current(dirs: &ProjectDirs) {
 	let (window_name, desktop_number) = get_window_name_and_desktop() ;
 	// eprintln!("We're on desktop {} and our window is {}", desktop_number, window_name);
 	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
 	std::env::set_var("WINDOW_NAME", &window_name);
+	let category = get_category(desktop_number, &window_name, dirs);
+	std::env::set_var("CATEGORY", &category);
 
-	let home = std::env::home_dir().unwrap();
-	let home = home.as_path();
 	let mut file = OpenOptions::new()
 		.append(true).create(true)
-		.open(home.join(".local/share/timeplot/log.log")).unwrap();
+		.open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let log_line = format!("{} {} {} {}",
 		Utc::now().format(DATE_FORMAT),
-		get_category(desktop_number, &window_name),
+		category,
 		desktop_number,
 		window_name);
 	eprintln!("logging: {}", log_line);
@@ -219,20 +217,20 @@ fn do_save_current() {
 fn main() {
 	eprintln!("script launched, args: {:?}", std::env::args().skip(1).collect::<String>());
 
-	let home = std::env::home_dir().unwrap();
-	let home = home.as_path();
-	std::fs::create_dir_all(home.join(".config/timeplot")).unwrap();
-	std::fs::create_dir_all(home.join(".cache/timeplot")).unwrap();
-	std::fs::create_dir_all(home.join(".local/share/timeplot")).unwrap();
+	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
 
-	let locked_file = File::open(home.join(".config/timeplot")).unwrap();
+	std::fs::create_dir_all(dirs.config_dir()).unwrap();
+	std::fs::create_dir_all(dirs.cache_dir()).unwrap();
+	std::fs::create_dir_all(dirs.data_local_dir()).unwrap();
+
+	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
 
 	// TODO: add XDG autostart. After explicit approval only?  $XDG_CONFIG_HOME/autostart
 
 	loop {
-		do_save_current();
-		do_plot();
+		do_save_current(&dirs);
+		do_plot(&dirs);
 		let duration = Duration::from_secs(60 * 5); // TODO: configuration
 		std::thread::sleep(duration);
 	}

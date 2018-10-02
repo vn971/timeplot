@@ -14,7 +14,7 @@ readme = "README.md"
 chrono = "0.4"
 fs2 = "0.4.3"
 gnuplot = "0.0.26"
-#directories = "1.0"
+directories = "1.0"
 
 [dependencies.config]
 version = "0.9"

@@ -1,0 +1,15 @@
+[category.work]
+color="black"
+
+[category.personal]
+color="orange"
+
+[category.fun]
+color="red"
+# example command. Lock screen if it's too late or too early.
+command=["sh", "-c", "test $(date '+%k') -ge 22 && xscreensaver-command -lock"]
+command=["sh", "-c", "test $(date '+%k') -le 11 && xscreensaver-command -lock"]
+
+
+# All categories are logged, but only the one listed here are being plotted.
+# If you add categories later, old logged entries will be re-analyzed and re-drawn.
