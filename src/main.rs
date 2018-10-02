@@ -121,7 +121,8 @@ fn do_plot(dirs: &ProjectDirs) {
 	figure.set_terminal("svg", dirs.cache_dir().join("timeplot.svg").to_str().unwrap());
 	for category in categories {
 		figure.axes2d()
-			.set_x_ticks(None, &[], &[])
+			// .set_x_ticks(None, &[], &[])
+			.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[])
 			.set_y_ticks(None, &[], &[])
 			.set_border(false, &[], &[])
 			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE))
