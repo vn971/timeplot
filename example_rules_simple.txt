@@ -15,6 +15,12 @@ fun hedgewars
 fun supertuxkart
 fun smplayer
 
+# social networks (fb, twitter, russian "vkonkakte")
+fun facebook
+fun twitter
+fun новости
+fun новые комментарии
+
 # if nothing else matched:
 work  at master 
 work cargo

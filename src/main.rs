@@ -8,6 +8,7 @@ extern crate directories;
 
 use chrono::prelude::*;
 use directories::ProjectDirs;
+use directories::UserDirs;
 use fs2::FileExt;
 use std::cmp::min;
 use std::fs::File;
@@ -20,18 +21,21 @@ use std::process::Command;
 use std::time::Duration;
 
 struct LogEntry {
-	time: u64,
+	time: u64, // EPOCH seconds
 	category: String,
 	// desktop: u64,  // no need to parse
 	// window_name: String,  // no need to parse
 }
 
-const FILE_SEEK: u64 = 100_000;
-const PLOT_DAYS: u64 = 14;
+const PLOT_DAYS: f32 = 7.0;
 const PLOT_HEIGHT_SCALE: f64 = 10.0;
+const MEASUREMENT_FREQUENCY_SECONDS: u64 = 60 * 3;
+
 const WINDOW_MAX_LENGTH: usize = 120;
-const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
+const FILE_SEEK: u64 = 100_000;
+const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M"; // cannot change without losing backwards compat
 const LOG_FILE_NAME: &str = "log.log";
+const GRAPH_USE_TICKS: bool = true;
 
 const EXAMPLE_RULES_SIMPLE: &'static str = include_str!("../example_rules_simple.txt");
 
@@ -50,6 +54,7 @@ fn parse_log_line(line: &str) -> LogEntry {
 struct CategoryData {
 	category_name: String,
 	color: String,
+	time_impact: u64,
 	value: Option<f32>,
 	points: Vec<f32>,
 }
@@ -58,7 +63,7 @@ fn do_plot(dirs: &ProjectDirs) {
 	use gnuplot::*;
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
-	let min_time = time_now - PLOT_DAYS * 60 * 60 * 24;
+	let min_time = time_now - (PLOT_DAYS * 60.0 * 60.0 * 24.0) as u64;
 	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
@@ -80,18 +85,21 @@ fn do_plot(dirs: &ProjectDirs) {
 	categories.push(CategoryData {
 		category_name: "work".to_string(),
 		color: "black".to_string(),
+		time_impact: 0,
 		value: None,
 		points: Vec::new(),
 	});
 	categories.push(CategoryData {
 		category_name: "personal".to_string(),
 		color: "orange".to_string(),
+		time_impact: 0,
 		value: None,
 		points: Vec::new(),
 	});
 	categories.push(CategoryData {
 		category_name: "fun".to_string(),
 		color: "red".to_string(),
+		time_impact: 0,
 		value: None,
 		points: Vec::new(),
 	});
@@ -107,26 +115,42 @@ fn do_plot(dirs: &ProjectDirs) {
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
 		for category in categories.iter_mut() {
+			if line.category == category.category_name {
+				category.time_impact += min(time_diff, MEASUREMENT_FREQUENCY_SECONDS);
+			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
 			let old_value = category.value.unwrap_or(latest);
 			let new_value = Some(latest * weight_new + old_value * weight_old);
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
 		}
-		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // allow "days" ticks
+		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // show "days" ticks
 		last_time = line.time;
 	}
 
 	let mut figure = Figure::new();
-	figure.set_terminal("svg", dirs.cache_dir().join("timeplot.svg").to_str().unwrap());
-	for category in categories {
-		figure.axes2d()
-			// .set_x_ticks(None, &[], &[])
-			.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[])
+	// "svg size 1000 1000"
+	figure.set_terminal("svg size 1200 400", dirs.cache_dir().join("svg.svg").to_str().unwrap());
+	{
+		let axes = figure.axes2d()
 			.set_y_ticks(None, &[], &[])
 			.set_border(false, &[], &[])
-			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE))
-			.lines(&x_coord, &category.points, &[Caption(""), Color(&category.color), PointSize(1.0), PointSymbol('*')]);
+			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE));
+		if GRAPH_USE_TICKS {
+			axes.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[]);
+		} else {
+			axes.set_x_ticks(None, &[], &[]);
+		}
+		for category in categories {
+			axes.lines(&x_coord,
+					&category.points,
+					&[Caption(&format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0)),
+						Color(&category.color),
+						PointSize(1.0),
+						PointSymbol('*')
+					],
+				);
+		}
 	}
 	figure.echo_to_file(dirs.cache_dir().join("gnuplot").to_str().unwrap());
 	figure.show();
@@ -185,7 +209,13 @@ fn get_window_name_and_desktop() -> (String, u32) {
 		.arg("get_desktop")
 		.arg("getwindowname")
 		.output().unwrap();
-	assert!(command.status.success());
+	// eprintln!("command stdout: \n{}\nstderr:\n{}", String::from_utf8_lossy(&command.stdout), String::from_utf8_lossy(&command.stderr));
+	assert!(command.status.success(),
+		"command failed with stdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&command.stdout),
+		String::from_utf8_lossy(&command.stderr)
+	);
+//	assert!(command.status.success());
 	let stdout = String::from_utf8_lossy(&command.stdout);
 	let split: Vec<&str> = stdout.split('\n').collect();
 	let window_name = split[1].replace("\n", "").as_str().chars()
@@ -215,14 +245,26 @@ fn do_save_current(dirs: &ProjectDirs) {
 }
 
 
+fn ensure_env(key: &str, value: &str) {
+	if std::env::var_os(key).is_none() {
+		std::env::set_var(key, value);
+	}
+}
+
 fn main() {
-	eprintln!("script launched, args: {:?}", std::env::args().skip(1).collect::<String>());
+	eprintln!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
+	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
+	ensure_env("DISPLAY", ":0.0");
+	ensure_env("XAUTHORITY", UserDirs::new().unwrap().home_dir().join(".Xauthority").to_str().unwrap());
 
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
 
 	std::fs::create_dir_all(dirs.config_dir()).unwrap();
+	eprintln!("Config dir: {}", dirs.config_dir().to_str().unwrap());
 	std::fs::create_dir_all(dirs.cache_dir()).unwrap();
+	eprintln!("Cache dir: {}", dirs.cache_dir().to_str().unwrap());
 	std::fs::create_dir_all(dirs.data_local_dir()).unwrap();
+	eprintln!("Data dir: {}", dirs.data_local_dir().to_str().unwrap());
 
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
@@ -232,7 +274,7 @@ fn main() {
 	loop {
 		do_save_current(&dirs);
 		do_plot(&dirs);
-		let duration = Duration::from_secs(60 * 5); // TODO: configuration
+		let duration = Duration::from_secs(MEASUREMENT_FREQUENCY_SECONDS);
 		std::thread::sleep(duration);
 	}
 }

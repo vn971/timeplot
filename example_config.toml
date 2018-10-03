@@ -1,3 +1,10 @@
+[main]
+
+[graph]
+extension="svg"
+show_hours=true
+show_ticks=true
+
 [category.work]
 color="black"
 
