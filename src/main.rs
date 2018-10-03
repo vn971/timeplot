@@ -1,12 +1,14 @@
 #[global_allocator]
 static GLOBAL: std::alloc::System = std::alloc::System;
 
+extern crate chrono;
+extern crate config;
+extern crate directories;
 extern crate fs2;
 extern crate gnuplot;
-extern crate chrono;
-extern crate directories;
 
 use chrono::prelude::*;
+use config::Config;
 use directories::ProjectDirs;
 use directories::UserDirs;
 use fs2::FileExt;
@@ -17,27 +19,29 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
-
-struct LogEntry {
-	time: u64, // EPOCH seconds
-	category: String,
-	// desktop: u64,  // no need to parse
-	// window_name: String,  // no need to parse
-}
-
-const PLOT_DAYS: f32 = 7.0;
-const PLOT_HEIGHT_SCALE: f64 = 10.0;
-const MEASUREMENT_FREQUENCY_SECONDS: u64 = 60 * 3;
 
 const WINDOW_MAX_LENGTH: usize = 120;
 const FILE_SEEK: u64 = 100_000;
 const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M"; // cannot change without losing backwards compat
 const LOG_FILE_NAME: &str = "log.log";
-const GRAPH_USE_TICKS: bool = true;
 
-const EXAMPLE_RULES_SIMPLE: &'static str = include_str!("../example_rules_simple.txt");
+const RULES_FILE_NAME: &str = "rules_simple.txt";
+const RULES_EXAMPLE: &'static str = include_str!("../example_rules_simple.txt");
+
+const CONFIG_FILE_NAME: &str = "config.toml";
+const CONFIG_EXAMPLE: &'static str = include_str!("../example_config.toml");
+const CONFIG_PARSE_ERROR: &str = "Failed to parse config file. Consider removing/renaming it so it'll be recreated.";
+
+struct LogEntry {
+	/// EPOCH seconds
+	time: u64,
+	category: String,
+	// desktop: u64,  // no need to parse
+	// window_name: String,  // no need to parse
+}
 
 fn parse_log_line(line: &str) -> LogEntry {
 	let split: Vec<&str> = line.splitn(4, ' ').collect();
@@ -59,11 +63,16 @@ struct CategoryData {
 	points: Vec<f32>,
 }
 
-fn do_plot(dirs: &ProjectDirs) {
+fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	use gnuplot::*;
+	let conf_sleep_seconds = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
+	let conf_sleep_seconds = (conf_sleep_seconds * 60.0) as u64;
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
-	let min_time = time_now - (PLOT_DAYS * 60.0 * 60.0 * 24.0) as u64;
+	let min_time = {
+		let plot_days = conf.get_float("main.plot_days").expect(CONFIG_PARSE_ERROR);
+		time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64
+	};
 	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
@@ -116,7 +125,7 @@ fn do_plot(dirs: &ProjectDirs) {
 		let weight_new = 1.0 - weight_old;
 		for category in categories.iter_mut() {
 			if line.category == category.category_name {
-				category.time_impact += min(time_diff, MEASUREMENT_FREQUENCY_SECONDS);
+				category.time_impact += min(time_diff, conf_sleep_seconds);
 			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
 			let old_value = category.value.unwrap_or(latest);
@@ -130,30 +139,52 @@ fn do_plot(dirs: &ProjectDirs) {
 
 	let mut figure = Figure::new();
 	// "svg size 1000 1000"
-	figure.set_terminal("svg size 1200 400", dirs.cache_dir().join("svg.svg").to_str().unwrap());
+	let extension = conf.get_str("graph.extension").expect(CONFIG_PARSE_ERROR);
+	let plot_file_name = format!("{}.{}", extension, extension);
+
+	let size_override = conf.get_str("graph.size").expect(CONFIG_PARSE_ERROR);
+	let size_override = size_override.trim();
+	let terminal = if size_override.is_empty() {
+		format!("{}", extension)
+	} else {
+		format!("{} size {}", extension, size_override)
+	};
+	figure.set_terminal(&terminal, dirs.cache_dir().join(plot_file_name).to_str().unwrap());
 	{
 		let axes = figure.axes2d()
 			.set_y_ticks(None, &[], &[])
 			.set_border(false, &[], &[])
-			.set_y_range(Fix(-0.1), Fix(PLOT_HEIGHT_SCALE));
-		if GRAPH_USE_TICKS {
+			.set_y_range(Fix(-0.1), Fix(conf.get_float("graph.height_scale").expect(CONFIG_PARSE_ERROR)));
+		if conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR) {
 			axes.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[]);
 		} else {
 			axes.set_x_ticks(None, &[], &[]);
 		}
 		for category in categories {
+			let stats = if conf.get_bool("graph.show_stats").expect(CONFIG_PARSE_ERROR) {
+				format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0)
+			} else {
+				"".to_string()
+			};
 			axes.lines(&x_coord,
-					&category.points,
-					&[Caption(&format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0)),
-						Color(&category.color),
-						PointSize(1.0),
-						PointSymbol('*')
-					],
-				);
+				&category.points,
+				&[Caption(&stats),
+					Color(&category.color),
+					PointSize(1.0),
+					PointSymbol('*')
+				],
+			);
 		}
 	}
 	figure.echo_to_file(dirs.cache_dir().join("gnuplot").to_str().unwrap());
 	figure.show();
+}
+
+fn ensure_file(filename: &PathBuf, content: &'static str) {
+	if Path::new(&filename).exists() == false {
+		let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
+		file.write_all(content.as_bytes()).unwrap();
+	}
 }
 
 fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> String {
@@ -175,13 +206,7 @@ fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> S
 		assert!(child.status.success());
 		String::from_utf8(child.stdout).unwrap()
 	} else {
-		let rules_path = dirs.config_dir().join("rules_simple.txt");
-		if Path::new(&rules_path).exists() == false {
-			let mut file = OpenOptions::new().create(true).write(true)
-				.open(&rules_path).unwrap();
-			file.write_all(EXAMPLE_RULES_SIMPLE.as_bytes()).unwrap();
-		}
-		let rules_file = File::open(rules_path).unwrap();
+		let rules_file = File::open(dirs.config_dir().join(RULES_FILE_NAME)).unwrap();
 		let rules_file = BufReader::new(rules_file);
 
 		for line in rules_file.lines() {
@@ -224,7 +249,7 @@ fn get_window_name_and_desktop() -> (String, u32) {
 }
 
 fn do_save_current(dirs: &ProjectDirs) {
-	let (window_name, desktop_number) = get_window_name_and_desktop() ;
+	let (window_name, desktop_number) = get_window_name_and_desktop();
 	// eprintln!("We're on desktop {} and our window is {}", desktop_number, window_name);
 	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
 	std::env::set_var("WINDOW_NAME", &window_name);
@@ -259,12 +284,16 @@ fn main() {
 
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
 
-	std::fs::create_dir_all(dirs.config_dir()).unwrap();
 	eprintln!("Config dir: {}", dirs.config_dir().to_str().unwrap());
-	std::fs::create_dir_all(dirs.cache_dir()).unwrap();
+	std::fs::create_dir_all(dirs.config_dir()).unwrap();
 	eprintln!("Cache dir: {}", dirs.cache_dir().to_str().unwrap());
-	std::fs::create_dir_all(dirs.data_local_dir()).unwrap();
+	std::fs::create_dir_all(dirs.cache_dir()).unwrap();
 	eprintln!("Data dir: {}", dirs.data_local_dir().to_str().unwrap());
+	std::fs::create_dir_all(dirs.data_local_dir()).unwrap();
+
+	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), RULES_EXAMPLE);
+	let config_path = dirs.config_dir().join(CONFIG_FILE_NAME);
+	ensure_file(&config_path, CONFIG_EXAMPLE);
 
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
@@ -272,9 +301,13 @@ fn main() {
 	// TODO: add XDG autostart. After explicit approval only?  $XDG_CONFIG_HOME/autostart
 
 	loop {
+		let mut conf = config::Config::default();
+		conf.merge(config::File::with_name(config_path.to_str().unwrap())).unwrap();
+
 		do_save_current(&dirs);
-		do_plot(&dirs);
-		let duration = Duration::from_secs(MEASUREMENT_FREQUENCY_SECONDS);
+		do_plot(&dirs, &conf);
+		let sleep_min = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
+		let duration = Duration::from_secs((sleep_min * 60.0) as u64);
 		std::thread::sleep(duration);
 	}
 }

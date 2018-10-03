@@ -1,9 +1,15 @@
 [main]
+plot_days=7.0
+sleep_minutes=3.0  # how much to wait for next iteration (ideally 60-600 sec)
+
 
 [graph]
 extension="svg"
-show_hours=true
-show_ticks=true
+show_stats=true
+show_day_labels=true
+size=""  # example: "1200 400" or "" (default)
+height_scale=10.0  #default 1.0
+
 
 [category.work]
 color="black"
@@ -14,8 +20,8 @@ color="orange"
 [category.fun]
 color="red"
 # example command. Lock screen if it's too late or too early.
-command=["sh", "-c", "test $(date '+%k') -ge 22 && xscreensaver-command -lock"]
-command=["sh", "-c", "test $(date '+%k') -le 11 && xscreensaver-command -lock"]
+# it's best to move complex functionality to a script of course.
+command=["sh", "-c", "(test $(date '+%k') -ge 22) || test $(date '+%k') -le 11 && xscreensaver-command -lock || true"]
 
 
 # All categories are logged, but only the one listed here are being plotted.

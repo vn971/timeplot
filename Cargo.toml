@@ -19,6 +19,7 @@ directories = "1.0"
 [dependencies.config]
 version = "0.9"
 default-features = false
+features = ["toml"]
 
 
 [profile.release]
