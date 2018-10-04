@@ -30,10 +30,10 @@ const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M"; // cannot change without losing back
 const LOG_FILE_NAME: &str = "log.log";
 
 const RULES_FILE_NAME: &str = "rules_simple.txt";
-const RULES_EXAMPLE: &'static str = include_str!("../example_rules_simple.txt");
+const RULES_EXAMPLE: &'static str = include_str!("../res/example_rules_simple.txt");
 
 const CONFIG_FILE_NAME: &str = "config.toml";
-const CONFIG_EXAMPLE: &'static str = include_str!("../example_config.toml");
+const CONFIG_EXAMPLE: &'static str = include_str!("../res/example_config.toml");
 const CONFIG_PARSE_ERROR: &str = "Failed to parse config file. Consider removing/renaming it so it'll be recreated.";
 
 struct LogEntry {
@@ -78,7 +78,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
-	// seek forward until we reach entries
+	// seek forward until we reach recent entries
 	let mut pos = 0;
 	loop {
 		pos += FILE_SEEK;
@@ -133,7 +133,6 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	}
 
 	let mut figure = Figure::new();
-	// "svg size 1000 1000"
 	let extension = conf.get_str("graph.extension").expect(CONFIG_PARSE_ERROR);
 	let plot_file_name = format!("{}.{}", extension, extension);
 
@@ -273,11 +272,6 @@ const AUTOSTART_FILE: &'static str = include_str!("../res/linux_autostart.deskto
 fn add_to_autostart() {
 	let bin_path = Path::new(&std::env::args().next().unwrap()).canonicalize().unwrap();
 	let file_str = AUTOSTART_FILE.replace("%PATH%", bin_path.to_str().unwrap());
-	//let file_path = match std::env::var_os("XDG_CONFIG_HOME") {
-	//	Some(var) => var.to_str().unwrap().to_string(),
-	//	None => UserDirs::new().unwrap().home_dir().join(".config").to_str().unwrap().to_string()
-	//};
-	//let file_path = Path::new(&file_path).join("autostart/TimePlot.desktop");
 	let file_path = UserDirs::new().unwrap().home_dir().join(".config/autostart/TimePlot.desktop");
 	ensure_file(&file_path, &file_str);
 }
