@@ -147,6 +147,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	let show_days = conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR);
 	let show_hours = conf.get_bool("graph.show_category_hours").expect(CONFIG_PARSE_ERROR);
 	let show_names = conf.get_bool("graph.show_category_names").expect(CONFIG_PARSE_ERROR);
+	let hours_label = conf.get_str("graph.hours_label").unwrap_or("".to_string());
 	{
 		let axes = figure.axes2d()
 			.set_y_ticks(None, &[], &[])
@@ -160,7 +161,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 		for category in categories.values_mut() {
 			let name: &str = if show_names { &category.category_name } else { "" };
 			let hours = category.time_impact as f64 / 60.0 / 60.0;
-			let hours = if show_hours { format!(" {:.0}", hours) } else { "".to_string() };
+			let hours = if show_hours { format!(" {:.0} {}", hours, hours_label) } else { "".to_string() };
 			let caption = format!("{}{}", name, hours);
 			axes.lines(&x_coord,
 				&category.points,
@@ -300,11 +301,10 @@ fn main() {
 	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), RULES_EXAMPLE);
 	let config_path = dirs.config_dir().join(CONFIG_FILE_NAME);
 	ensure_file(&config_path, CONFIG_EXAMPLE);
+	add_to_autostart();
 
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
-
-	add_to_autostart();
 
 	loop {
 		let mut conf = config::Config::default();

@@ -1,8 +1,9 @@
 ## About
 
-TimePlot -- personal activity tracker & graph plotter.
+TimePlot -- personal activity tracker & visualizer.
 
-It could help you properly bill customers for freelance tasks, visualize your performance or possibly help finding out how certain things impact your computer work. Or maybe just draw cool graphs.;D
+Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks or potentially fight procrastination.
+Or maybe just get new cool graphs.;D
 
 
 ## Usage
@@ -19,7 +20,7 @@ It could help you properly bill customers for freelance tasks, visualize your pe
 * If the category is wrong, fix the category right in the log.
 * Edit rules to auto-categorize this window name in the future: `~/.config/timeplot/rules_simple.txt`.
 * Wait for timeplot to re-draw the plot (`~/.cache/timeplot/svg.svg`)
-<img src="docs/svg.svg" width="800" />
+<img src="docs/png.png" width="800" /><!-- screenshot params: pngcairo 1200,170, 2.9 -->
 * Whenever you want to check the text log, or see if it can be improved, return 3 steps back.
 
 
