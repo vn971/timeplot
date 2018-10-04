@@ -2,6 +2,7 @@
 
 TimePlot -- personal activity tracker & graph plotter.
 
+
 ## Usage
 
 * Run "timeplot"
@@ -14,18 +15,19 @@ TimePlot -- personal activity tracker & graph plotter.
 2018-10-01_21:31 personal 13 vasya@vn971think:~
 ```
 * If the category is wrong, fix the category right in the log.
-* Auto-categorize this window name in the future by editing rules: `~/.config/timeplot/rules_simple.txt`.
-1. Wait for timeplot to log a new entry and re-draw the plot (`~/.cache/timeplot/svg.svg`)
+* Edit rules to auto-categorize this window name in the future: `~/.config/timeplot/rules_simple.txt`.
+* Wait for timeplot to re-draw the plot (`~/.cache/timeplot/svg.svg`)
 <img src="docs/svg.svg" width="800" />
+* Whenever you want to check the text log, or see if it can be improved, go back to step 3.
 
-1. Whenever you want to check the text log, or see if it can be improved, go back to step 3.
 
 ## Hints
+
 * You can set this image as your Desktop background image if you like.
-* You can configure the app-s dehavior by editing ~/.config/timeplot/config.toml
+* You can configure the app by editing ~/.config/timeplot/config.toml  (plot a different number of days, configure colors, statistics display, etc).
 * If you have trouble finding the directories, run `timeplot` from terminal. It will print the directories.
-* When doing categorization via rules_simple.txt, **the first matching entry** will be taken as window-s category. You can use that by placing strict rules on top, and more general ones on the bottom.
 * If you're curious on what the number means in the logs: it means your desktop "workstation" number, usually 1-4. It's logged, but it's not yet usable in "rules_simple.txt". Hopefully it'll be usable in future versions of timeplot.
+
 
 ## Installation (ArchLinux)
 
@@ -48,10 +50,10 @@ TODO: AUR package
 * Run `target/release/timeplot`
 
 
-## Building
+## Installation (Windows)
 
-* download the project
-* Run `cargo build --release` in the main directory. The resulting binary is `target/release/timeplot`
+* Not supported yet. We need to implement window name extraction, then it should work.
+
 
 ## Other
 

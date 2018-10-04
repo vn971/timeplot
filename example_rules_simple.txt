@@ -1,9 +1,11 @@
-work intellij
+# First matching line is taken as window-s category. Place most strict rules first.
+#
+# Empty lines and comments are ignored.
+
+work intellij idea
 work emacs
-work kate
+work Git Gui
 work Stack Overflow
-work rust
-work scala
 
 personal audacious
 personal diaspora
@@ -22,8 +24,12 @@ fun новости
 fun новые комментарии
 
 # if nothing else matched:
-work  at master 
+work  at master
 work cargo
+work kate
+work rust
+work scala
+work python
 personal thunderbird
 fun Mozilla Firefox
 

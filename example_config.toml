@@ -1,27 +1,29 @@
+# This config is re-read each time a graph is being plotted.
+
 [main]
 plot_days=7.0
-sleep_minutes=3.0  # how much to wait for next iteration (ideally 60-600 sec)
+sleep_minutes=3.0  # how long to wait for next iteration (ideally 1-5 min)
 
 
 [graph]
-extension="svg"
+extension="svg"  # valid values: "svg", "pngcairo", "png"
 show_stats=true
 show_day_labels=true
 size=""  # example: "1200 400" or "" (default)
-height_scale=10.0  #default 1.0
+height_scale=10.0  # default 1.0  Change this if you change size.
 
 
 [category.work]
-color="black"
+color="black"  # color names or HTML codes "#FF00CC" are accepted
 
 [category.personal]
 color="orange"
 
 [category.fun]
 color="red"
-# example command. Lock screen if it's too late or too early.
+# example command. Lock screen if it's too late (22:00) or too early (10:00).
 # it's best to move complex functionality to a script of course.
-command=["sh", "-c", "(test $(date '+%k') -ge 22) || test $(date '+%k') -le 11 && xscreensaver-command -lock || true"]
+command=["sh", "-c", "(test $(date '+%k') -ge 22 || test $(date '+%k') -le 10) && xscreensaver-command -lock || true"]
 
 
 # All categories are logged, but only the one listed here are being plotted.
