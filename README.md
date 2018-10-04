@@ -2,7 +2,7 @@
 
 TimePlot -- personal activity tracker & graph plotter.
 
-It could help you properly bill customers for freelance tasks, visualize your performance and possibly help finding out how certain things impact your computer work. Or maybe just draw cool graphs.;D
+It could help you properly bill customers for freelance tasks, visualize your performance or possibly help finding out how certain things impact your computer work. Or maybe just draw cool graphs.;D
 
 
 ## Usage
@@ -59,7 +59,7 @@ TODO: AUR package
 
 ## Limitations
 
-* Periods of data absence are not handled smartly yet
+* Periods of data absence are not handled smartly yet. (TODO)
 
 
 ## Other

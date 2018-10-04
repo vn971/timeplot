@@ -33,4 +33,4 @@ work python
 personal thunderbird
 fun Mozilla Firefox
 
-skip
+personal

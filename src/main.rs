@@ -98,6 +98,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	let mut categories: HashMap<&str, CategoryData> = HashMap::new();
 
 	let mut last_time = time_now;
+	let mut is_reset = true;
 	let mut x_coord: Vec<f64> = Vec::new();
 	for line in &lines {
 		if line.time < min_time { continue; }
@@ -111,7 +112,8 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 				points: Vec::new(),
 			});
 		}
-		let time_diff = last_time - min(line.time, last_time); // TODO
+		let time_diff = last_time - min(line.time, last_time);
+		// TODO: add two artificial graph points if `is_reset`
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
 
@@ -120,12 +122,13 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 				category.time_impact += min(time_diff, conf_sleep_seconds);
 			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-			let old_value = category.value.unwrap_or(latest);
+			let old_value = category.value.unwrap_or(if is_reset { latest } else { 0.0 });
 			let new_value = Some(latest * weight_new + old_value * weight_old);
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
 		}
 		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // show "days" ticks
+		is_reset = time_diff as f64 > 5.0 * 60.0 * conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 		last_time = line.time;
 	}
 
