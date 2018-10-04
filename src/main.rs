@@ -177,7 +177,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	figure.show();
 }
 
-fn ensure_file(filename: &PathBuf, content: &'static str) {
+fn ensure_file(filename: &PathBuf, content: &str) {
 	if Path::new(&filename).exists() == false {
 		let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
 		file.write_all(content.as_bytes()).unwrap();
@@ -266,6 +266,21 @@ fn do_save_current(dirs: &ProjectDirs) {
 	file.write_all("\n".as_bytes()).unwrap();
 }
 
+#[cfg(target_os = "linux")]
+const AUTOSTART_FILE: &'static str = include_str!("../res/linux_autostart.desktop");
+
+#[cfg(target_os = "linux")]
+fn add_to_autostart() {
+	let bin_path = Path::new(&std::env::args().next().unwrap()).canonicalize().unwrap();
+	let file_str = AUTOSTART_FILE.replace("%PATH%", bin_path.to_str().unwrap());
+	//let file_path = match std::env::var_os("XDG_CONFIG_HOME") {
+	//	Some(var) => var.to_str().unwrap().to_string(),
+	//	None => UserDirs::new().unwrap().home_dir().join(".config").to_str().unwrap().to_string()
+	//};
+	//let file_path = Path::new(&file_path).join("autostart/TimePlot.desktop");
+	let file_path = UserDirs::new().unwrap().home_dir().join(".config/autostart/TimePlot.desktop");
+	ensure_file(&file_path, &file_str);
+}
 
 fn ensure_env(key: &str, value: &str) {
 	if std::env::var_os(key).is_none() {
@@ -273,6 +288,7 @@ fn ensure_env(key: &str, value: &str) {
 	}
 }
 
+#[cfg(target_os = "linux")]
 fn main() {
 	eprintln!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
 	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
@@ -295,7 +311,7 @@ fn main() {
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
 
-	// TODO: add XDG autostart. After explicit approval only?  $XDG_CONFIG_HOME/autostart
+	add_to_autostart();
 
 	loop {
 		let mut conf = config::Config::default();
