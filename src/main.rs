@@ -13,6 +13,7 @@ use directories::ProjectDirs;
 use directories::UserDirs;
 use fs2::FileExt;
 use std::cmp::min;
+use std::collections::HashMap;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufReader;
@@ -55,6 +56,7 @@ fn parse_log_line(line: &str) -> LogEntry {
 	}
 }
 
+
 struct CategoryData {
 	category_name: String,
 	color: String,
@@ -90,40 +92,30 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 		}
 	}
 
-	let mut categories: Vec<CategoryData> = Vec::new();
-	categories.push(CategoryData {
-		category_name: "work".to_string(),
-		color: "black".to_string(),
-		time_impact: 0,
-		value: None,
-		points: Vec::new(),
-	});
-	categories.push(CategoryData {
-		category_name: "personal".to_string(),
-		color: "orange".to_string(),
-		time_impact: 0,
-		value: None,
-		points: Vec::new(),
-	});
-	categories.push(CategoryData {
-		category_name: "fun".to_string(),
-		color: "red".to_string(),
-		time_impact: 0,
-		value: None,
-		points: Vec::new(),
-	});
-
 	let mut lines: Vec<_> = log_file.lines().map(|l| parse_log_line(&l.unwrap())).collect();
 	lines.reverse();
 
+	let mut categories: HashMap<&str, CategoryData> = HashMap::new();
+
 	let mut last_time = time_now;
-	let mut x_coord = Vec::new();
-	for line in lines {
+	let mut x_coord: Vec<f64> = Vec::new();
+	for line in &lines {
 		if line.time < min_time { continue; }
+		if !conf.get_bool(&format!("category.{}.hide", &line.category)).unwrap_or(false)
+			&& categories.contains_key(line.category.as_str()) == false {
+			categories.insert(&line.category, CategoryData {
+				category_name: line.category.to_string(),
+				color: conf.get_str(&format!("category.{}.color", &line.category)).unwrap_or("black".to_string()).to_string(),
+				time_impact: 0,
+				value: None,
+				points: Vec::new(),
+			});
+		}
 		let time_diff = last_time - min(line.time, last_time); // TODO
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
-		for category in categories.iter_mut() {
+
+		for category in categories.values_mut() {
 			if line.category == category.category_name {
 				category.time_impact += min(time_diff, conf_sleep_seconds);
 			};
@@ -150,25 +142,27 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 		format!("{} size {}", extension, size_override)
 	};
 	figure.set_terminal(&terminal, dirs.cache_dir().join(plot_file_name).to_str().unwrap());
+	let show_days = conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR);
+	let show_hours = conf.get_bool("graph.show_category_hours").expect(CONFIG_PARSE_ERROR);
+	let show_names = conf.get_bool("graph.show_category_names").expect(CONFIG_PARSE_ERROR);
 	{
 		let axes = figure.axes2d()
 			.set_y_ticks(None, &[], &[])
 			.set_border(false, &[], &[])
 			.set_y_range(Fix(-0.1), Fix(conf.get_float("graph.height_scale").expect(CONFIG_PARSE_ERROR)));
-		if conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR) {
+		if show_days {
 			axes.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[]);
 		} else {
 			axes.set_x_ticks(None, &[], &[]);
 		}
-		for category in categories {
-			let stats = if conf.get_bool("graph.show_stats").expect(CONFIG_PARSE_ERROR) {
-				format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0)
-			} else {
-				"".to_string()
-			};
+		for category in categories.values_mut() {
+			let name: &str = if show_names { &category.category_name } else { "" };
+			let hours = category.time_impact as f64 / 60.0 / 60.0;
+			let hours = if show_hours { format!(" {:.0}", hours) } else { "".to_string() };
+			let caption = format!("{}{}", name, hours);
 			axes.lines(&x_coord,
 				&category.points,
-				&[Caption(&stats),
+				&[Caption(&caption),
 					Color(&category.color),
 					PointSize(1.0),
 					PointSymbol('*')

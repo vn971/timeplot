@@ -2,6 +2,8 @@
 
 TimePlot -- personal activity tracker & graph plotter.
 
+It could help you properly bill customers for freelance tasks, visualize your performance and possibly help finding out how certain things impact your computer work. Or maybe just draw cool graphs.;D
+
 
 ## Usage
 
@@ -18,7 +20,7 @@ TimePlot -- personal activity tracker & graph plotter.
 * Edit rules to auto-categorize this window name in the future: `~/.config/timeplot/rules_simple.txt`.
 * Wait for timeplot to re-draw the plot (`~/.cache/timeplot/svg.svg`)
 <img src="docs/svg.svg" width="800" />
-* Whenever you want to check the text log, or see if it can be improved, go back to step 3.
+* Whenever you want to check the text log, or see if it can be improved, return 3 steps back.
 
 
 ## Hints
@@ -53,6 +55,11 @@ TODO: AUR package
 ## Installation (Windows)
 
 * Not supported yet. We need to implement window name extraction, then it should work.
+
+
+## Limitations
+
+* Periods of data absence are not handled smartly yet
 
 
 ## Other

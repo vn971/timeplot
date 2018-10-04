@@ -1,30 +1,31 @@
-# This config is re-read each time a graph is being plotted.
+# This config is re-read each time a graph is being plotted
 
 [main]
-plot_days=7.0
+plot_days=5.0
 sleep_minutes=3.0  # how long to wait for next iteration (ideally 1-5 min)
-
 
 [graph]
 extension="svg"  # valid values: "svg", "pngcairo", "png"
-show_stats=true
+show_category_names=false  # show category name (probably not needed once you get used to colors)
+show_category_hours=true  # show category statistics (hours spent)
 show_day_labels=true
-size=""  # example: "1200 400" or "" (default)
+size="1200 400"  # example: "1200 400" or "" (default, automatic svg resize)
 height_scale=10.0  # default 1.0  Change this if you change size.
 
 
 [category.work]
-color="black"  # color names or HTML codes "#FF00CC" are accepted
+color="black"  # names or codes "#FF00CC" are accepted
 
 [category.personal]
 color="orange"
 
 [category.fun]
 color="red"
-# example command. Lock screen if it's too late (22:00) or too early (10:00).
-# it's best to move complex functionality to a script of course.
-command=["sh", "-c", "(test $(date '+%k') -ge 22 || test $(date '+%k') -le 10) && xscreensaver-command -lock || true"]
+# Example command. Lock screen if it's too late (22:00) or too early (10:00).
+# command=["sh", "-c", "(test $(date '+%k') -ge 22 || test $(date '+%k') -le 10) && xscreensaver-command -lock || true"]
 
+[category.education]
+color="green"
 
-# All categories are logged, but only the one listed here are being plotted.
-# If you add categories later, old logged entries will be re-analyzed and re-drawn.
+[category.skip]
+hide=true
