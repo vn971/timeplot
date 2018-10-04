@@ -5,8 +5,7 @@ description = "Personal activity tracker & graph plotter"
 authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 license="GPL-3.0-or-later"
 keywords = ["graph", "plot", "time", "tracker", "logger"]
-#homepage = "https:// TODO"
-#repository = "https:// TODO"
+repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
 
 

@@ -185,7 +185,6 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 
 fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> String {
 	{
-		// TODO: allow ignoring xprintidle
 		let idle_time = Command::new("xprintidle").output().unwrap();
 		assert!(idle_time.status.success());
 		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
