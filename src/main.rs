@@ -57,14 +57,15 @@ struct CategoryData {
 	category_name: String,
 	color: String,
 	time_impact: u64,
-	value: Option<f32>,
-	points: Vec<f32>,
+	last_value: Option<f32>,
+	keys: Vec<u64>,
+	values: Vec<f32>,
 }
 
 fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	use gnuplot::*;
-	let conf_sleep_seconds = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
-	let conf_sleep_seconds = (conf_sleep_seconds * 60.0) as u64;
+	let sleep_seconds = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
+	let sleep_seconds = (sleep_seconds * 60.0) as u64;
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = {
@@ -92,39 +93,51 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	lines.reverse();
 
 	let mut categories: HashMap<&str, CategoryData> = HashMap::new();
+	// TODO: pre-fill categories to have deterministic order
 
 	let mut last_time = time_now;
-	let mut is_reset = true;
-	let mut x_coord: Vec<f64> = Vec::new();
-	for line in &lines {
+	for line in lines.iter_mut() {
 		if line.epoch_seconds < min_time { continue; }
 		if !conf.get_bool(&format!("category.{}.hide", &line.category)).unwrap_or(false)
 			&& categories.contains_key(line.category.as_str()) == false {
+			let is_empty = categories.is_empty();
 			categories.insert(&line.category, CategoryData {
 				category_name: line.category.to_string(),
 				color: conf.get_str(&format!("category.{}.color", &line.category)).unwrap_or("black".to_string()).to_string(),
 				time_impact: 0,
-				value: None,
-				points: Vec::new(),
+				last_value: if is_empty { None } else { Some(0.0) },
+				values: Vec::new(),
+				keys: Vec::new(),
 			});
 		}
-		let time_diff = last_time - min(line.epoch_seconds, last_time);
-		// TODO: add two artificial graph points if `is_reset`
+		line.epoch_seconds = min(line.epoch_seconds, last_time);
+		let time_diff = last_time - line.epoch_seconds;
+		if time_diff > 5 * sleep_seconds {
+			for category in categories.values_mut() {
+				category.last_value = Some(0.0);
+				category.keys.push(last_time - 2 * sleep_seconds);
+				category.values.push(0.0);
+			}
+			for category in categories.values_mut() {
+				category.last_value = None;
+				category.keys.push(line.epoch_seconds); //  + sleep_seconds
+				category.values.push(0.0);
+			}
+		}
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
 
 		for category in categories.values_mut() {
 			if line.category == category.category_name {
-				category.time_impact += min(time_diff, conf_sleep_seconds);
+				category.time_impact += min(time_diff, sleep_seconds);
 			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-			let old_value = category.value.unwrap_or(if is_reset { latest } else { 0.0 });
+			let old_value = category.last_value.unwrap_or(latest);
 			let new_value = Some(latest * weight_new + old_value * weight_old);
-			category.value = new_value;
-			category.points.push(new_value.unwrap_or(0.0));
+			category.last_value = new_value;
+			category.keys.push(line.epoch_seconds);
+			category.values.push(new_value.unwrap_or(0.0));
 		}
-		x_coord.push((line.epoch_seconds as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // show "days" ticks
-		is_reset = time_diff as f64 > 5.0 * 60.0 * conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 		last_time = line.epoch_seconds;
 	}
 
@@ -156,7 +169,10 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 			let hours = format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0);
 			let caption = label_format.replace("%hours%", &hours)
 				.replace("%category%", &category.category_name);
-			axes.lines(&x_coord, &category.points, &[
+			let x_coord: Vec<_> = category.keys.iter().map(|x|
+				(*x as f64 - time_now as f64) / 60.0 / 60.0 / 24.0
+			).collect();
+			axes.lines(&x_coord, &category.values, &[
 				Caption(&caption),
 				Color(&category.color),
 				PointSize(1.0),

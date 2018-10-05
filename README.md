@@ -58,11 +58,6 @@ TODO: AUR package
 * Not supported yet. We need to implement window name extraction, then it should work.
 
 
-## Limitations
-
-* Periods of data absence are not handled smartly yet. (TODO)
-
-
 ## Other
 
 The application only does what it says in this description. It never sends anything anywhere, never logs any kind of data except the one specified above.
