@@ -26,7 +26,7 @@ use std::time::Duration;
 
 const WINDOW_MAX_LENGTH: usize = 120;
 const FILE_SEEK: u64 = 100_000;
-const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M"; // cannot change without losing backwards compat
+const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
 const LOG_FILE_NAME: &str = "log.log";
 
 const RULES_FILE_NAME: &str = "rules_simple.txt";
@@ -144,10 +144,8 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 		format!("{} size {}", extension, size_override)
 	};
 	figure.set_terminal(&terminal, dirs.cache_dir().join(plot_file_name).to_str().unwrap());
+	let label_format = conf.get_str("graph.line_format").expect(CONFIG_PARSE_ERROR);
 	let show_days = conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR);
-	let show_hours = conf.get_bool("graph.show_category_hours").expect(CONFIG_PARSE_ERROR);
-	let show_names = conf.get_bool("graph.show_category_names").expect(CONFIG_PARSE_ERROR);
-	let hours_label = conf.get_str("graph.hours_label").unwrap_or("".to_string());
 	{
 		let axes = figure.axes2d()
 			.set_y_ticks(None, &[], &[])
@@ -159,18 +157,15 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 			axes.set_x_ticks(None, &[], &[]);
 		}
 		for category in categories.values_mut() {
-			let name: &str = if show_names { &category.category_name } else { "" };
-			let hours = category.time_impact as f64 / 60.0 / 60.0;
-			let hours = if show_hours { format!(" {:.0} {}", hours, hours_label) } else { "".to_string() };
-			let caption = format!("{}{}", name, hours);
-			axes.lines(&x_coord,
-				&category.points,
-				&[Caption(&caption),
-					Color(&category.color),
-					PointSize(1.0),
-					PointSymbol('*')
-				],
-			);
+			let hours = format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0);
+			let caption = label_format.replace("%hours%", &hours)
+				.replace("%category%", &category.category_name);
+			axes.lines(&x_coord, &category.points, &[
+				Caption(&caption),
+				Color(&category.color),
+				PointSize(1.0),
+				PointSymbol('*')
+			]);
 		}
 	}
 	figure.echo_to_file(dirs.cache_dir().join("gnuplot").to_str().unwrap());
