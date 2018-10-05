@@ -280,13 +280,16 @@ fn add_to_autostart() {
 	ensure_file(&file_path, &file_str);
 }
 
+#[cfg(not(target_os = "linux"))]
+fn add_to_autostart() {}
+
+
 fn ensure_env(key: &str, value: &str) {
 	if std::env::var_os(key).is_none() {
 		std::env::set_var(key, value);
 	}
 }
 
-#[cfg(target_os = "linux")]
 fn main() {
 	eprintln!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
 	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
