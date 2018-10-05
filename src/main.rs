@@ -36,12 +36,10 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 const CONFIG_EXAMPLE: &'static str = include_str!("../res/example_config.toml");
 const CONFIG_PARSE_ERROR: &str = "Failed to parse config file. Consider removing/renaming it so it'll be recreated.";
 
+/// The part of log entry that needs to be parsed.
 struct LogEntry {
-	/// EPOCH seconds
-	time: u64,
+	epoch_seconds: u64,
 	category: String,
-	// desktop: u64,  // no need to parse
-	// window_name: String,  // no need to parse
 }
 
 fn parse_log_line(line: &str) -> LogEntry {
@@ -49,10 +47,8 @@ fn parse_log_line(line: &str) -> LogEntry {
 	let parse_error = format!("Failed to parse log entry {}", line);
 	let time = Utc.datetime_from_str(split.get(0).expect(&parse_error), DATE_FORMAT).expect(&parse_error);
 	LogEntry {
-		time: time.timestamp_millis() as u64 / 1000,
+		epoch_seconds: time.timestamp_millis() as u64 / 1000,
 		category: (*split.get(1).expect(&parse_error)).to_string(),
-		// desktop: split.get(2).expect(&parse_error).parse::<u64>().unwrap(),
-		// window_name: (*split.get(3).expect(&parse_error)).to_string(),
 	}
 }
 
@@ -86,7 +82,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 		let mut line = String::new();
 		log_file.read_line(&mut String::new()).unwrap();
 		log_file.read_line(&mut line).unwrap();
-		if line.is_empty() || parse_log_line(&line).time > min_time {
+		if line.is_empty() || parse_log_line(&line).epoch_seconds > min_time {
 			log_file.seek(SeekFrom::Start(pos - FILE_SEEK)).unwrap();
 			break;
 		}
@@ -101,7 +97,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	let mut is_reset = true;
 	let mut x_coord: Vec<f64> = Vec::new();
 	for line in &lines {
-		if line.time < min_time { continue; }
+		if line.epoch_seconds < min_time { continue; }
 		if !conf.get_bool(&format!("category.{}.hide", &line.category)).unwrap_or(false)
 			&& categories.contains_key(line.category.as_str()) == false {
 			categories.insert(&line.category, CategoryData {
@@ -112,7 +108,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 				points: Vec::new(),
 			});
 		}
-		let time_diff = last_time - min(line.time, last_time);
+		let time_diff = last_time - min(line.epoch_seconds, last_time);
 		// TODO: add two artificial graph points if `is_reset`
 		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
 		let weight_new = 1.0 - weight_old;
@@ -127,9 +123,9 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 			category.value = new_value;
 			category.points.push(new_value.unwrap_or(0.0));
 		}
-		x_coord.push((line.time as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // show "days" ticks
+		x_coord.push((line.epoch_seconds as f64 - time_now as f64) / 60.0 / 60.0 / 24.0); // show "days" ticks
 		is_reset = time_diff as f64 > 5.0 * 60.0 * conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
-		last_time = line.time;
+		last_time = line.epoch_seconds;
 	}
 
 	let mut figure = Figure::new();
@@ -225,13 +221,11 @@ fn get_window_name_and_desktop() -> (String, u32) {
 		.arg("get_desktop")
 		.arg("getwindowname")
 		.output().unwrap();
-	// eprintln!("command stdout: \n{}\nstderr:\n{}", String::from_utf8_lossy(&command.stdout), String::from_utf8_lossy(&command.stderr));
 	assert!(command.status.success(),
 		"command failed with stdout:\n{}\nstderr:\n{}",
 		String::from_utf8_lossy(&command.stdout),
 		String::from_utf8_lossy(&command.stderr)
 	);
-//	assert!(command.status.success());
 	let stdout = String::from_utf8_lossy(&command.stdout);
 	let split: Vec<&str> = stdout.split('\n').collect();
 	let window_name = split[1].replace("\n", "").as_str().chars()
@@ -241,7 +235,6 @@ fn get_window_name_and_desktop() -> (String, u32) {
 
 fn do_save_current(dirs: &ProjectDirs) {
 	let (window_name, desktop_number) = get_window_name_and_desktop();
-	// eprintln!("We're on desktop {} and our window is {}", desktop_number, window_name);
 	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
 	std::env::set_var("WINDOW_NAME", &window_name);
 	let category = get_category(desktop_number, &window_name, dirs);
