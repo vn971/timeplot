@@ -113,7 +113,7 @@ dependencies = [
 
 [[package]]
 name = "timeplot"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "config 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
