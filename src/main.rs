@@ -66,12 +66,12 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	use gnuplot::*;
 	let sleep_seconds = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 	let sleep_seconds = (sleep_seconds * 60.0) as u64;
+	let plot_days = conf.get_float("main.plot_days").expect(CONFIG_PARSE_ERROR);
+	let smoothing = conf.get_float("graph.smoothing").expect(CONFIG_PARSE_ERROR);
+	let smoothing = plot_days as f32 * smoothing as f32 * 100.0;
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
-	let min_time = {
-		let plot_days = conf.get_float("main.plot_days").expect(CONFIG_PARSE_ERROR);
-		time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64
-	};
+	let min_time = time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64;
 	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
@@ -124,7 +124,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 				category.values.push(0.0);
 			}
 		}
-		let weight_old = 1.0 / (time_diff as f32 / 300.0).exp2();
+		let weight_old = 1.0 / (time_diff as f32 / smoothing).exp2();
 		let weight_new = 1.0 - weight_old;
 
 		for category in categories.values_mut() {
