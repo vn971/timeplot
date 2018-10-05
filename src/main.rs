@@ -57,7 +57,6 @@ struct CategoryData {
 	category_name: String,
 	color: String,
 	time_impact: u64,
-	last_value: Option<f32>,
 	keys: Vec<u64>,
 	values: Vec<f32>,
 }
@@ -68,7 +67,8 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	let sleep_seconds = (sleep_seconds * 60.0) as u64;
 	let plot_days = conf.get_float("main.plot_days").expect(CONFIG_PARSE_ERROR);
 	let smoothing = conf.get_float("graph.smoothing").expect(CONFIG_PARSE_ERROR);
-	let smoothing = plot_days as f32 * smoothing as f32 * 100.0;
+	let smoothing = -plot_days as f32 * smoothing as f32 * 100.0;
+	let data_absence_modifier = (sleep_seconds as f32 / smoothing).exp2();
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64;
@@ -105,36 +105,29 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 				category_name: line.category.to_string(),
 				color: conf.get_str(&format!("category.{}.color", &line.category)).unwrap_or("black".to_string()).to_string(),
 				time_impact: 0,
-				last_value: if is_empty { None } else { Some(0.0) },
-				values: Vec::new(),
-				keys: Vec::new(),
+				values: if is_empty { Vec::new() } else { vec![0.0] },
+				keys: if is_empty { Vec::new() } else { vec![last_time] },
 			});
 		}
 		line.epoch_seconds = min(line.epoch_seconds, last_time);
-		let time_diff = last_time - line.epoch_seconds;
-		if time_diff > 5 * sleep_seconds {
+		while last_time > line.epoch_seconds + sleep_seconds {
+			last_time -= sleep_seconds;
 			for category in categories.values_mut() {
-				category.last_value = Some(0.0);
-				category.keys.push(last_time - 2 * sleep_seconds);
-				category.values.push(0.0);
-			}
-			for category in categories.values_mut() {
-				category.last_value = None;
-				category.keys.push(line.epoch_seconds); //  + sleep_seconds
-				category.values.push(0.0);
+				let last = category.values.last().map(|x| *x);
+				category.keys.push(last_time);
+				category.values.push(last.unwrap_or(0.0) * data_absence_modifier);
 			}
 		}
-		let weight_old = 1.0 / (time_diff as f32 / smoothing).exp2();
+		let time_diff = last_time - line.epoch_seconds;
+		let weight_old = (time_diff as f32 / smoothing).exp2();
 		let weight_new = 1.0 - weight_old;
-
 		for category in categories.values_mut() {
 			if line.category == category.category_name {
 				category.time_impact += min(time_diff, sleep_seconds);
 			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-			let old_value = category.last_value.unwrap_or(latest);
+			let old_value = category.values.last().map(|x| *x).unwrap_or(latest);
 			let new_value = Some(latest * weight_new + old_value * weight_old);
-			category.last_value = new_value;
 			category.keys.push(line.epoch_seconds);
 			category.values.push(new_value.unwrap_or(0.0));
 		}
