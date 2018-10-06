@@ -321,7 +321,6 @@ fn main() {
 		do_save_current(&dirs, &image_dir);
 		do_plot(&image_dir, &conf);
 		let sleep_min = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
-		let duration = Duration::from_secs((sleep_min * 60.0) as u64);
-		std::thread::sleep(duration);
+		std::thread::sleep(Duration::from_secs((sleep_min * 60.0) as u64));
 	}
 }

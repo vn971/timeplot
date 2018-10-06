@@ -9,7 +9,7 @@ Or maybe just get new cool graphs.:)
 ## Usage
 
 * Run "timeplot"
-* Each 3 minutes your currently active window name is logged to `~/.local/share/timeplot/log.log`. Open the log to see if timeplot has categorized your activity correctly. It looks like this:
+* Each 3 minutes your currently active window name is logged to timeplot log. Open it to see if timeplot has categorized your activity correctly. It looks like this:
 ```
 2018-10-01_14:00 skip 0 Desktop
 2018-10-01_15:03 work 9 #rust @ irc.mozilla.org
@@ -19,7 +19,7 @@ Or maybe just get new cool graphs.:)
 ```
 * If the category is wrong, fix the category right in the log.
 * Edit rules to auto-categorize this window name in the future: `~/.config/timeplot/rules_simple.txt`.
-* Wait for timeplot to re-draw the plot (`~/.cache/timeplot/svg.svg`)
+* Wait for timeplot to re-draw the plot (`~/Pictures/timeplot`)
 <img src="docs/png.png" width="800" /><!-- screenshot params: pngcairo 1200,170, 2.9 -->
 * Whenever you want to check the text log, or see if it can be improved, return 3 steps back.
 
@@ -37,7 +37,7 @@ Or maybe just get new cool graphs.:)
 1. Install dependencies `gnuplot`, `xprintidle` and `xdotool`:
 * * On Debian/Ubuntu, `sudo apt install gnuplot xprintidle xdotool`
 * * On macOS, same packages seem to be available, but I don't know installation best practices. PR anyone?
-* * On Windows, Windows support is planned, but not there yet. Hopefully we'll get there in a couple of weeks.
+* * Windows support is planned, but not there yet. Hopefully we'll get there in a couple of weeks.
 2. Build the project:
 * * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
 * * On all other platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
