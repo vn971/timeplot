@@ -1,6 +1,6 @@
 ## About
 
-TimePlot -- personal activity tracker & visualizer.
+TimePlot -- personal activity logger & visualizer.
 
 Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks or potentially fight procrastination.
 Or maybe just get new cool graphs.:)
@@ -42,6 +42,7 @@ Or maybe just get new cool graphs.:)
 * * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
 * * On all other platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
 3. Run it.
+4. Consider adding `timeplot` to autostart, making it run when you log in. If you use MacOS, you must create said autostart hook manually (help on making it automatic appreciated). For Linux users, there's a configuration setting that, if enabled, will create XDG autostart entry for you.
 
 
 ## Other
