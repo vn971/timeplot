@@ -3,7 +3,7 @@
 TimePlot -- personal activity tracker & visualizer.
 
 Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks or potentially fight procrastination.
-Or maybe just get new cool graphs.;D
+Or maybe just get new cool graphs.:)
 
 
 ## Usage
@@ -26,36 +26,22 @@ Or maybe just get new cool graphs.;D
 
 ## Hints
 
-* You can set this image as your Desktop background image if you like.
+* You can set the image as your Desktop background image if you like.
 * You can configure the app by editing ~/.config/timeplot/config.toml  (plot a different number of days, configure colors, statistics display, etc).
 * If you have trouble finding the directories, run `timeplot` from terminal. It will print the directories.
 * If you're curious on what the number means in the logs: it means your desktop "workstation" number, usually 1-4. It's logged, but it's not yet usable in "rules_simple.txt". Hopefully it'll be usable in future versions of timeplot.
 
 
-## Installation (ArchLinux)
+## Installation
 
-TODO: AUR package
-
-
-## Installation (Linux, simple)
-
-* Install dependencies: `gnuplot` `xprintidle` `xdotool`
-* Download the binary from https:// TODO
-* Make it executable (for example, `chmod +x timeplot`)
-* Run it
-
-
-## Installation (MacOS, Linux)
-
-* Install dependencies: `gnuplot` `xprintidle` `xdotool`
-* Install `cargo` (the Rust build tool)
-* Download this project-s sources, enter the directory and build: `cargo build --release`
-* Run `target/release/timeplot`
-
-
-## Installation (Windows)
-
-* Not supported yet. We need to implement window name extraction, then it should work.
+1. Install dependencies `gnuplot`, `xprintidle` and `xdotool`:
+* * On Debian/Ubuntu, `sudo apt install gnuplot xprintidle xdotool`
+* * On macOS, same packages seem to be available, but I don't know installation best practices. PR anyone?
+* * On Windows, Windows support is planned, but not there yet. Hopefully we'll get there in a couple of weeks.
+2. Build the project:
+* * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
+* * On all other platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
+3. Run it.
 
 
 ## Other
