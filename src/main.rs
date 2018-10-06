@@ -29,12 +29,7 @@ const WINDOW_MAX_LENGTH: usize = 120;
 const FILE_SEEK: u64 = 100_000;
 const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
 const LOG_FILE_NAME: &str = "log.log";
-
 const RULES_FILE_NAME: &str = "rules_simple.txt";
-const RULES_EXAMPLE: &'static str = include_str!("../res/example_rules_simple.txt");
-
-const CONFIG_FILE_NAME: &str = "config.toml";
-const CONFIG_EXAMPLE: &'static str = include_str!("../res/example_config.toml");
 const CONFIG_PARSE_ERROR: &str = "Failed to parse config file. Consider removing/renaming it so it'll be recreated.";
 
 /// The part of log entry that needs to be parsed.
@@ -298,9 +293,9 @@ fn main() {
 	eprintln!("Image dir: {}", image_dir.to_str().unwrap());
 	std::fs::create_dir_all(&image_dir).unwrap();
 
-	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), RULES_EXAMPLE);
-	let config_path = dirs.config_dir().join(CONFIG_FILE_NAME);
-	ensure_file(&config_path, CONFIG_EXAMPLE);
+	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), &include_str!("../res/example_rules_simple.txt"));
+	let config_path = dirs.config_dir().join("config.toml");
+	ensure_file(&config_path, include_str!("../res/example_config.toml"));
 
 	let mut conf = config::Config::default();
 	conf.merge(config::File::with_name(config_path.to_str().unwrap())).unwrap();
