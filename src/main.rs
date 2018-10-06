@@ -6,6 +6,7 @@ extern crate config;
 extern crate directories;
 extern crate fs2;
 extern crate gnuplot;
+extern crate open;
 
 use chrono::prelude::*;
 use config::Config;
@@ -61,7 +62,7 @@ struct CategoryData {
 	values: Vec<f32>,
 }
 
-fn do_plot(dirs: &ProjectDirs, conf: &Config) {
+fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	use gnuplot::*;
 	let sleep_seconds = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 	let sleep_seconds = (sleep_seconds * 60.0) as u64;
@@ -72,7 +73,7 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64;
-	let log_file = File::open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
+	let log_file = File::open(image_dir.join(LOG_FILE_NAME)).unwrap();
 	let mut log_file = BufReader::new(log_file);
 
 	// seek forward until we reach recent entries
@@ -135,17 +136,9 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 	}
 
 	let mut figure = Figure::new();
-	let extension = conf.get_str("graph.extension").expect(CONFIG_PARSE_ERROR);
-	let plot_file_name = format!("{}.{}", extension, extension);
 
 	let size_override = conf.get_str("graph.size").expect(CONFIG_PARSE_ERROR);
 	let size_override = size_override.trim();
-	let terminal = if size_override.is_empty() {
-		format!("{}", extension)
-	} else {
-		format!("{} size {}", extension, size_override)
-	};
-	figure.set_terminal(&terminal, dirs.cache_dir().join(plot_file_name).to_str().unwrap());
 	let label_format = conf.get_str("graph.line_format").expect(CONFIG_PARSE_ERROR);
 	let show_days = conf.get_bool("graph.show_day_labels").expect(CONFIG_PARSE_ERROR);
 	{
@@ -173,7 +166,14 @@ fn do_plot(dirs: &ProjectDirs, conf: &Config) {
 			]);
 		}
 	}
-	figure.echo_to_file(dirs.cache_dir().join("gnuplot").to_str().unwrap());
+	let size_suffix = if size_override.is_empty() {
+		"".to_string()
+	} else {
+		format!(" size {}", size_override)
+	};
+	figure.set_terminal(&format!("svg{}", size_suffix), image_dir.join("image.svg").to_str().unwrap());
+	figure.show();
+	figure.set_terminal(&format!("pngcairo{}", size_suffix), image_dir.join("image.png").to_str().unwrap());
 	figure.show();
 }
 
@@ -242,7 +242,7 @@ fn get_window_name_and_desktop() -> (String, u32) {
 	(window_name, split[0].parse::<u32>().unwrap())
 }
 
-fn do_save_current(dirs: &ProjectDirs) {
+fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
 	let (window_name, desktop_number) = get_window_name_and_desktop();
 	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
 	std::env::set_var("WINDOW_NAME", &window_name);
@@ -251,7 +251,7 @@ fn do_save_current(dirs: &ProjectDirs) {
 
 	let mut file = OpenOptions::new()
 		.append(true).create(true)
-		.open(dirs.data_local_dir().join(LOG_FILE_NAME)).unwrap();
+		.open(image_dir.join(LOG_FILE_NAME)).unwrap();
 	let log_line = format!("{} {} {} {}",
 		Utc::now().format(DATE_FORMAT),
 		category,
@@ -263,12 +263,10 @@ fn do_save_current(dirs: &ProjectDirs) {
 }
 
 #[cfg(target_os = "linux")]
-const AUTOSTART_FILE: &'static str = include_str!("../res/linux_autostart.desktop");
-
-#[cfg(target_os = "linux")]
 fn add_to_autostart() {
+	let xdg_desktop = include_str!("../res/linux_autostart.desktop");
 	let bin_path = Path::new(&std::env::args().next().unwrap()).canonicalize().unwrap();
-	let file_str = AUTOSTART_FILE.replace("%PATH%", bin_path.to_str().unwrap());
+	let file_str = xdg_desktop.replace("%PATH%", bin_path.to_str().unwrap());
 	let file_path = UserDirs::new().unwrap().home_dir().join(".config/autostart/TimePlot.desktop");
 	ensure_file(&file_path, &file_str);
 }
@@ -289,29 +287,39 @@ fn main() {
 	ensure_env("DISPLAY", ":0.0");
 	ensure_env("XAUTHORITY", UserDirs::new().unwrap().home_dir().join(".Xauthority").to_str().unwrap());
 
+	let user_dirs = UserDirs::new().unwrap();
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
+	let image_dir = user_dirs.picture_dir().filter(|f| f.exists())
+		.map(|f| f.join("timeplot"))
+		.unwrap_or(dirs.data_local_dir().to_path_buf());
 
 	eprintln!("Config dir: {}", dirs.config_dir().to_str().unwrap());
 	std::fs::create_dir_all(dirs.config_dir()).unwrap();
-	eprintln!("Cache dir: {}", dirs.cache_dir().to_str().unwrap());
-	std::fs::create_dir_all(dirs.cache_dir()).unwrap();
-	eprintln!("Data dir: {}", dirs.data_local_dir().to_str().unwrap());
-	std::fs::create_dir_all(dirs.data_local_dir()).unwrap();
+	eprintln!("Image dir: {}", image_dir.to_str().unwrap());
+	std::fs::create_dir_all(&image_dir).unwrap();
 
 	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), RULES_EXAMPLE);
 	let config_path = dirs.config_dir().join(CONFIG_FILE_NAME);
 	ensure_file(&config_path, CONFIG_EXAMPLE);
-	add_to_autostart();
+
+	let mut conf = config::Config::default();
+	conf.merge(config::File::with_name(config_path.to_str().unwrap())).unwrap();
+
+	if conf.get_bool("beginner.create_autostart_entry").unwrap_or(false) {
+		add_to_autostart();
+	}
+	if conf.get_bool("beginner.show_directories").unwrap_or(true) {
+		open::that(dirs.config_dir()).unwrap();
+		open::that(&image_dir).unwrap();
+	}
 
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
 
 	loop {
-		let mut conf = config::Config::default();
-		conf.merge(config::File::with_name(config_path.to_str().unwrap())).unwrap();
-
-		do_save_current(&dirs);
-		do_plot(&dirs, &conf);
+		conf.refresh().unwrap();
+		do_save_current(&dirs, &image_dir);
+		do_plot(&image_dir, &conf);
 		let sleep_min = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 		let duration = Duration::from_secs((sleep_min * 60.0) as u64);
 		std::thread::sleep(duration);
