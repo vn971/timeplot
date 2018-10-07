@@ -7,6 +7,8 @@ extern crate directories;
 extern crate fs2;
 extern crate gnuplot;
 extern crate open;
+#[cfg(windows)] extern crate user32;
+#[cfg(windows)] extern crate winapi;
 
 use chrono::prelude::*;
 use config::Config;
@@ -179,19 +181,12 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 	}
 }
 
-fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> String {
-	{
-		let idle_time = Command::new("xprintidle").output().unwrap();
-		assert!(idle_time.status.success());
-		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
-		let idle_time = idle_time.trim().parse::<u64>().unwrap() / 1000;
-		if idle_time > 60 * 3 { // 3min
-			eprintln!("idle time: {}", idle_time);
-			return "skip".to_string();
-		}
+fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -> String {
+	if activity_info.idle_seconds > 60 * 3 { // 3min
+		return "skip".to_string();
 	}
-	let window_name = window_name.to_lowercase();
-	let window_name = window_name.as_str();
+	let window_name = activity_info.window_name.to_lowercase().replace("\n", "")
+		.chars().take(WINDOW_MAX_LENGTH).collect::<String>();
 	if Path::new(&dirs.config_dir().join("category_decider")).exists() {
 		let child = Command::new(dirs.config_dir().join("category_decider")).output().unwrap();
 		assert!(child.status.success());
@@ -213,13 +208,20 @@ fn get_category(desktop_number: u32, window_name: &str, dirs: &ProjectDirs) -> S
 				return category.to_string();
 			}
 		}
-		eprintln!("Could not find any category for desktop {}, window {}", desktop_number, window_name);
+		eprintln!("Could not find any category for desktop {}, window {}", activity_info.desktop_number, window_name);
 		"skip".to_string()
 	}
 }
 
 
-fn get_window_name_and_desktop() -> (String, u32) {
+struct WindowActivityInformation {
+	window_name: String,
+	desktop_number: u64,
+	idle_seconds: u32,
+}
+
+#[cfg(not(target_os="windows"))]
+fn get_window_activity_info() -> WindowActivityInformation {
 	let command = Command::new("xdotool")
 		.arg("getactivewindow")
 		.arg("get_desktop")
@@ -232,16 +234,44 @@ fn get_window_name_and_desktop() -> (String, u32) {
 	);
 	let stdout = String::from_utf8_lossy(&command.stdout);
 	let split: Vec<&str> = stdout.split('\n').collect();
-	let window_name = split[1].replace("\n", "").as_str().chars()
-		.take(WINDOW_MAX_LENGTH).collect::<String>();
-	(window_name, split[0].parse::<u32>().unwrap())
+
+	let idle_time = Command::new("xprintidle").output().unwrap();
+	assert!(idle_time.status.success());
+	let idle_time = String::from_utf8(idle_time.stdout).unwrap();
+	let idle_time = idle_time.trim().parse::<u32>().unwrap() / 1000;
+
+	WindowActivityInformation {
+		window_name: split[1].to_string(),
+		desktop_number: split[0].parse::<u64>().unwrap(),
+		idle_seconds: idle_time,
+	}
 }
 
+#[cfg(target_os = "windows")]
+fn get_window_activity_info() -> WindowActivityInformation {
+	let mut vec = Vec::with_capacity(WINDOW_MAX_LENGTH);
+	unsafe {
+		let hwnd = user32::GetForegroundWindow();
+		let err_code = user32::GetWindowTextW(hwnd, vec.as_mut_ptr(), WINDOW_MAX_LENGTH as i32);
+		if err_code != 0 { // don't really know what to do in this case
+			eprintln!("ERROR: window name extraction failed!");
+		}
+		assert!(vec.capacity() >= WINDOW_MAX_LENGTH as usize);
+		vec.set_len(WINDOW_MAX_LENGTH as usize);
+	};
+	WindowActivityInformation {
+		window_name: String::from_utf16(&vec).unwrap(),
+		desktop_number: 0,
+		idle_seconds: 0,
+	}
+}
+
+
 fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
-	let (window_name, desktop_number) = get_window_name_and_desktop();
-	std::env::set_var("DESKTOP_NUMBER", desktop_number.to_string());
-	std::env::set_var("WINDOW_NAME", &window_name);
-	let category = get_category(desktop_number, &window_name, dirs);
+	let activity_info = get_window_activity_info();
+	std::env::set_var("DESKTOP_NUMBER", activity_info.desktop_number.to_string());
+	std::env::set_var("WINDOW_NAME", &activity_info.window_name);
+	let category = get_category(&activity_info, dirs);
 	std::env::set_var("CATEGORY", &category);
 
 	let mut file = OpenOptions::new()
@@ -250,8 +280,8 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
 	let log_line = format!("{} {} {} {}",
 		Utc::now().format(DATE_FORMAT),
 		category,
-		desktop_number,
-		window_name);
+		activity_info.desktop_number,
+		activity_info.window_name);
 	eprintln!("logging: {}", log_line);
 	file.write_all(log_line.as_bytes()).unwrap();
 	file.write_all("\n".as_bytes()).unwrap();

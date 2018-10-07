@@ -21,6 +21,10 @@ version = "0.9"
 default-features = false
 features = ["toml"]
 
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+user32-sys = "0.2.0"
+
 
 [profile.release]
 lto = true

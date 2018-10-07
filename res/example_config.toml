@@ -11,8 +11,8 @@ sleep_minutes=3.0  # how long to wait for next iteration (ideally 1-5 min)
 [graph]
 line_format="%category% (%hours%h)"  # Set to "" to hide completely.
 show_day_labels=true
-size="1200 400"  # example: "1200 400" or "" (default, automatic svg resize)
-height_scale=10.0  # default 1.0  Change this if you change size.
+size="1920,300"
+height_scale=2.0
 smoothing=1.0
 
 

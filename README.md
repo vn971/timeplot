@@ -9,7 +9,7 @@ Or maybe just get new cool graphs.:)
 ## Usage
 
 * Run "timeplot"
-* Each 3 minutes your currently active window name is logged to timeplot log. Open it to see if timeplot has categorized your activity correctly. It looks like this:
+* Each 3 minutes your currently active window name is logged. Open the log to see if timeplot has categorized your activity correctly. It looks like this:
 ```
 2018-10-01_14:00 skip 0 Desktop
 2018-10-01_15:03 work 9 #rust @ irc.mozilla.org
@@ -34,15 +34,15 @@ Or maybe just get new cool graphs.:)
 
 ## Installation
 
-1. Install dependencies `gnuplot`, `xprintidle` and `xdotool`:
+1. Make sure dependencies are installed:
 * * On Debian/Ubuntu, `sudo apt install gnuplot xprintidle xdotool`
 * * On macOS, same packages seem to be available, but I don't know installation best practices. PR anyone?
-* * Windows support is planned, but not there yet. Hopefully we'll get there in a couple of weeks.
+* * On ArchLinux: `pacman -S --needed gnuplot xprintidle xdotool`
+* * On Windows: no dependencies needed, go to next step.
 2. Build the project:
 * * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
 * * On all platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
-3. Run it.
-4. Consider adding `timeplot` to autostart, making it run when you log in. If you use MacOS, you must create said autostart hook manually (help on allowing to automate it appreciated). For Linux users, there's a configuration setting that, if enabled, will create XDG autostart entry for you.
+3. Consider adding `timeplot` to autostart, making it run when you log in. If you use MacOS or Windows, you must create said autostart hook manually (help on allowing to automate it appreciated). For Linux, there's a configuration setting that, if enabled, will create XDG autostart entry for you.
 
 
 ## Other

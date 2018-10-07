@@ -32,5 +32,6 @@ work scala
 work python
 personal thunderbird
 fun Mozilla Firefox
+skip Desktop
 
 personal
