@@ -6,7 +6,10 @@ err_exit() {
 	exit 1
 }
 
-cargo check  # update Cargo.lock
+# check code and update Cargo.lock:
+cargo check --target i686-pc-windows-gnu
+cargo check --target i686-unknown-linux-musl
+cargo check --target i686-apple-darwin
 
 if ! test -z "$(git status --porcelain)"; then # no uncommited local changes
   err_exit "error: uncommitted changes"
