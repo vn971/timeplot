@@ -235,10 +235,14 @@ fn get_window_activity_info() -> WindowActivityInformation {
 	let stdout = String::from_utf8_lossy(&command.stdout);
 	let split: Vec<&str> = stdout.split('\n').collect();
 
-	let idle_time = Command::new("xprintidle").output().unwrap();
-	assert!(idle_time.status.success());
-	let idle_time = String::from_utf8(idle_time.stdout).unwrap();
-	let idle_time = idle_time.trim().parse::<u32>().unwrap() / 1000;
+	let idle_time = if cfg!(target_os = "macos") {
+		0
+	} else {
+		let idle_time = Command::new("xprintidle").output().unwrap();
+		assert!(idle_time.status.success());
+		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
+		idle_time.trim().parse::<u32>().unwrap() / 1000
+	};
 
 	WindowActivityInformation {
 		window_name: split[1].to_string(),
