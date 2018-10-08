@@ -36,7 +36,7 @@ Or maybe just get new cool graphs.:)
 
 1. Make sure dependencies are installed:
 * * On Debian/Ubuntu, `sudo apt install gnuplot xprintidle xdotool`
-* * On macOS, same packages seem to be available, but I don't know installation best practices. PR anyone?
+* * On macOS, `brew install gnuplot xdotool`
 * * On ArchLinux: `pacman -S --needed gnuplot xprintidle xdotool`
 * * On Windows: no dependencies needed, go to next step.
 2. Build the project:
