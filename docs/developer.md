@@ -4,6 +4,12 @@ list and install rustup targets:
   rustup target install i686-pc-windows-gnu
 
 build static Linux release with:
-  docs/release.sh
+  tools/release.sh
 
 build Windows release with:
+
+
+Platform-specific TODO:
+* idle time on Windows
+* idle time on MacOS
+* ?use something more lightweight on Linux?

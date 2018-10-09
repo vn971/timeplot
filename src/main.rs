@@ -1,14 +1,16 @@
 #[global_allocator]
 static GLOBAL: std::alloc::System = std::alloc::System;
 
+#[cfg(target_os = "windows")] extern crate user32;
+#[cfg(target_os = "windows")] extern crate winapi;
 extern crate chrono;
 extern crate config;
 extern crate directories;
 extern crate fs2;
 extern crate gnuplot;
 extern crate open;
-#[cfg(windows)] extern crate user32;
-#[cfg(windows)] extern crate winapi;
+
+#[cfg(target_os = "macos")] use std::os::unix::fs::PermissionsExt;
 
 use chrono::prelude::*;
 use config::Config;
@@ -17,22 +19,26 @@ use directories::UserDirs;
 use fs2::FileExt;
 use std::cmp::min;
 use std::collections::HashMap;
+use std::env;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::fs;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::process::Output;
 use std::time::Duration;
 
-const WINDOW_MAX_LENGTH: usize = 120;
+const WINDOW_MAX_LENGTH: usize = 200;
 const FILE_SEEK: u64 = 100_000;
 const DATE_FORMAT: &str = "%Y-%m-%d_%H:%M";
 const LOG_FILE_NAME: &str = "log.log";
 const RULES_FILE_NAME: &str = "rules_simple.txt";
 const CONFIG_PARSE_ERROR: &str = "Failed to parse config file. Consider removing/renaming it so it'll be recreated.";
+#[cfg(target_os = "macos")] const MAC_SCRIPT_NAME:&str = "get_title.scpt";
 
 /// The part of log entry that needs to be parsed.
 struct LogEntry {
@@ -41,7 +47,7 @@ struct LogEntry {
 }
 
 fn parse_log_line(line: &str) -> LogEntry {
-	let split: Vec<&str> = line.splitn(4, ' ').collect();
+	let split: Vec<&str> = line.splitn(3, ' ').collect();
 	let parse_error = format!("Failed to parse log entry {}", line);
 	let time = Utc.datetime_from_str(split.get(0).expect(&parse_error), DATE_FORMAT).expect(&parse_error);
 	LogEntry {
@@ -174,6 +180,7 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	figure.show();
 }
 
+
 fn ensure_file(filename: &PathBuf, content: &str) {
 	if Path::new(&filename).exists() == false {
 		let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
@@ -181,83 +188,63 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 	}
 }
 
+fn assert_command_success(child: &Output) {
+	assert!(child.status.success(),
+		"ERROR: command failed with exit code {:?}\nStdErr: {}\nStdOut: {}",
+		child.status.code(),
+		String::from_utf8_lossy(&child.stderr),
+		String::from_utf8_lossy(&child.stdout),
+	);
+}
+
+
 fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -> String {
 	if activity_info.idle_seconds > 60 * 3 { // 3min
 		return "skip".to_string();
 	}
-	let window_name = activity_info.window_name.to_lowercase().replace("\n", "")
-		.chars().take(WINDOW_MAX_LENGTH).collect::<String>();
-	if Path::new(&dirs.config_dir().join("category_decider")).exists() {
-		let child = Command::new(dirs.config_dir().join("category_decider")).output().unwrap();
-		assert!(child.status.success());
-		String::from_utf8(child.stdout).unwrap()
-	} else {
-		let rules_file = File::open(dirs.config_dir().join(RULES_FILE_NAME)).unwrap();
-		let rules_file = BufReader::new(rules_file);
+	let window_name = activity_info.window_name.to_lowercase();
+	let rules_file = File::open(dirs.config_dir().join(RULES_FILE_NAME)).unwrap();
+	let rules_file = BufReader::new(rules_file);
 
-		for line in rules_file.lines() {
-			let line = line.unwrap();
-			if line.starts_with("#") || line.is_empty() {
-				continue;
-			}
-			let split: Vec<&str> = line.splitn(2, ' ').collect();
-			let category = *split.get(0).unwrap();
-			let window_pattern = *split.get(1).unwrap_or(&"");
-			let window_pattern = window_pattern.to_lowercase();
-			if window_name.contains(&window_pattern) {
-				return category.to_string();
-			}
+	for line in rules_file.lines() {
+		let line = line.unwrap();
+		if line.starts_with("#") || line.is_empty() {
+			continue;
 		}
-		eprintln!("Could not find any category for desktop {}, window {}", activity_info.desktop_number, window_name);
-		"skip".to_string()
+		let split: Vec<&str> = line.splitn(2, ' ').collect();
+		let category = *split.get(0).unwrap();
+		let window_pattern = *split.get(1).unwrap_or(&"");
+		let window_pattern = window_pattern.to_lowercase();
+		if window_name.contains(&window_pattern) {
+			return category.to_string();
+		}
 	}
+	eprintln!("Could not find any category for: {}", window_name);
+	"skip".to_string()
 }
 
 
 struct WindowActivityInformation {
 	window_name: String,
-	desktop_number: u64,
 	idle_seconds: u32,
 }
 
-#[cfg(not(target_os="windows"))]
-fn get_window_activity_info() -> WindowActivityInformation {
-	let command = Command::new("xdotool")
-		.arg("getactivewindow")
-		.arg("get_desktop")
-		.arg("getwindowname")
-		.output().unwrap();
-	assert!(command.status.success(),
-		"command failed with stdout:\n{}\nstderr:\n{}",
-		String::from_utf8_lossy(&command.stdout),
-		String::from_utf8_lossy(&command.stderr)
-	);
-	let stdout = String::from_utf8_lossy(&command.stdout);
-	let split: Vec<&str> = stdout.split('\n').collect();
-
-	let idle_time = if cfg!(target_os = "macos") {
-		0
-	} else {
-		let idle_time = Command::new("xprintidle").output().unwrap();
-		assert!(idle_time.status.success());
-		let idle_time = String::from_utf8(idle_time.stdout).unwrap();
-		idle_time.trim().parse::<u32>().unwrap() / 1000
-	};
-
+#[cfg(target_os = "macos")]
+fn get_window_activity_info(dirs: &ProjectDirs) -> WindowActivityInformation {
+	let command = Command::new(dirs.config_dir().join(MAC_SCRIPT_NAME)).output().unwrap();
+	assert_command_success(&command);
 	WindowActivityInformation {
-		window_name: split[1].to_string(),
-		desktop_number: split[0].parse::<u64>().unwrap(),
-		idle_seconds: idle_time,
+		window_name: String::from_utf8_lossy(&command.stdout).to_string(),
+		idle_seconds: 0,
 	}
 }
-
 #[cfg(target_os = "windows")]
-fn get_window_activity_info() -> WindowActivityInformation {
+fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 	let mut vec = Vec::with_capacity(WINDOW_MAX_LENGTH);
 	unsafe {
 		let hwnd = user32::GetForegroundWindow();
 		let err_code = user32::GetWindowTextW(hwnd, vec.as_mut_ptr(), WINDOW_MAX_LENGTH as i32);
-		if err_code != 0 { // don't really know what to do in this case
+		if err_code != 0 {
 			eprintln!("ERROR: window name extraction failed!");
 		}
 		assert!(vec.capacity() >= WINDOW_MAX_LENGTH as usize);
@@ -265,27 +252,49 @@ fn get_window_activity_info() -> WindowActivityInformation {
 	};
 	WindowActivityInformation {
 		window_name: String::from_utf16(&vec).unwrap(),
-		desktop_number: 0,
 		idle_seconds: 0,
+	}
+}
+#[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
+	let command = Command::new("xdotool")
+		.arg("getactivewindow")
+		.arg("getwindowname")
+		.output().unwrap();
+	assert_command_success(&command);
+
+	let idle_time = match Command::new("xprintidle").output() {
+		Err(err) => {
+			eprintln!("Failed to run xprintidle. Assuming window is not idle. Error: {}", err);
+			0
+		},
+		Ok(output) => {
+			let output = String::from_utf8(output.stdout).unwrap();
+			output.trim().parse::<u32>().unwrap() / 1000
+		}
+	};
+
+	WindowActivityInformation {
+		window_name: String::from_utf8_lossy(&command.stdout).to_string(),
+		idle_seconds: idle_time,
 	}
 }
 
 
 fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
-	let activity_info = get_window_activity_info();
-	std::env::set_var("DESKTOP_NUMBER", activity_info.desktop_number.to_string());
-	std::env::set_var("WINDOW_NAME", &activity_info.window_name);
+	let mut activity_info = get_window_activity_info(dirs);
+	activity_info.window_name = activity_info.window_name.trim().replace("\n", " ");
+	env::set_var("WINDOW_NAME", &activity_info.window_name);
 	let category = get_category(&activity_info, dirs);
-	std::env::set_var("CATEGORY", &category);
+	env::set_var("CATEGORY", &category);
 
 	let mut file = OpenOptions::new()
 		.append(true).create(true)
 		.open(image_dir.join(LOG_FILE_NAME)).unwrap();
-	let log_line = format!("{} {} {} {}",
+	let log_line = format!("{} {} {}",
 		Utc::now().format(DATE_FORMAT),
 		category,
-		activity_info.desktop_number,
-		activity_info.window_name);
+		activity_info.window_name.chars().take(WINDOW_MAX_LENGTH).collect::<String>());//todo vn
 	eprintln!("logging: {}", log_line);
 	file.write_all(log_line.as_bytes()).unwrap();
 	file.write_all("\n".as_bytes()).unwrap();
@@ -294,27 +303,38 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
 #[cfg(target_os = "linux")]
 fn add_to_autostart() {
 	let xdg_desktop = include_str!("../res/linux_autostart.desktop");
-	let bin_path = Path::new(&std::env::args().next().unwrap()).canonicalize().unwrap();
-	let file_str = xdg_desktop.replace("%PATH%", bin_path.to_str().unwrap());
+	let file_str = xdg_desktop.replace("%PATH%", env::current_exe().unwrap().to_str().unwrap());
 	let file_path = UserDirs::new().unwrap().home_dir().join(".config/autostart/TimePlot.desktop");
 	ensure_file(&file_path, &file_str);
 }
-
 #[cfg(not(target_os = "linux"))]
 fn add_to_autostart() {}
 
 
+#[cfg(target_os = "windows")]
+pub fn prepare_scripts(_: &ProjectDirs) {
+}
+#[cfg(target_os = "macos")]
+pub fn prepare_scripts(dirs: &ProjectDirs) { // main_prepare_files
+	let path = dirs.config_dir().join(MAC_SCRIPT_NAME);
+	ensure_file(&path, &include_str!("../res/macos_get_title.scpt"));
+	let mut perms = fs::metadata(&path).unwrap().permissions();
+	perms.set_mode(0o755);
+	fs::set_permissions(path, perms).unwrap();
+}
+#[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+pub fn prepare_scripts(_: &ProjectDirs) {
+}
+
+
 fn ensure_env(key: &str, value: &str) {
-	if std::env::var_os(key).is_none() {
-		std::env::set_var(key, value);
+	if env::var_os(key).is_none() {
+		env::set_var(key, value);
 	}
 }
 
 fn main() {
 	eprintln!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
-	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
-	ensure_env("DISPLAY", ":0.0");
-	ensure_env("XAUTHORITY", UserDirs::new().unwrap().home_dir().join(".Xauthority").to_str().unwrap());
 
 	let user_dirs = UserDirs::new().unwrap();
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
@@ -322,10 +342,14 @@ fn main() {
 		.map(|f| f.join("timeplot"))
 		.unwrap_or(dirs.data_local_dir().to_path_buf());
 
+	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
+	ensure_env("DISPLAY", ":0.0");
+	ensure_env("XAUTHORITY", user_dirs.home_dir().join(".Xauthority").to_str().unwrap());
+
 	eprintln!("Config dir: {}", dirs.config_dir().to_str().unwrap());
-	std::fs::create_dir_all(dirs.config_dir()).unwrap();
+	fs::create_dir_all(dirs.config_dir()).unwrap();
 	eprintln!("Image dir: {}", image_dir.to_str().unwrap());
-	std::fs::create_dir_all(&image_dir).unwrap();
+	fs::create_dir_all(&image_dir).unwrap();
 
 	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), &include_str!("../res/example_rules_simple.txt"));
 	let config_path = dirs.config_dir().join("config.toml");
@@ -341,6 +365,7 @@ fn main() {
 		open::that(dirs.config_dir()).unwrap();
 		open::that(&image_dir).unwrap();
 	}
+	prepare_scripts(&dirs);
 
 	let locked_file = File::open(dirs.config_dir()).unwrap();
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");

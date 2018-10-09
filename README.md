@@ -36,9 +36,9 @@ Or maybe just get new cool graphs.:)
 
 1. Make sure dependencies are installed:
 * * On Debian/Ubuntu, `sudo apt install gnuplot xprintidle xdotool`
-* * On macOS, `brew install gnuplot xdotool`
-* * On ArchLinux: `pacman -S --needed gnuplot xprintidle xdotool`
-* * On Windows: no dependencies needed, go to next step.
+* * On ArchLinux, `pacman -S --needed gnuplot xprintidle xdotool`
+* * On Windows, install [gnuplot](https://sourceforge.net/projects/gnuplot/files/gnuplot/)
+* * On macOS, `brew install gnuplot`
 2. Build the project:
 * * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
 * * On all platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
