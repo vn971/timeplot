@@ -293,7 +293,7 @@ fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 	let child = Command::new(left).args(&command[1..])
 		.env("CATEGORY", category).env("WINDOW_NAME", window_name).output();
 	if child.is_err() {
-		eprintln!("Failed to run command for category {}: `{}`", category, command);
+		eprintln!("Failed to run command for category {}: `{:?}`", category, command);
 	} else if child.unwrap().status.success() == false {
 		eprintln!("WARNING: Non-zero exit code for category {}, command {:?}", category, &command);
 	}
