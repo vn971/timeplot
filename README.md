@@ -1,9 +1,8 @@
 ## About
 
-TimePlot -- personal activity logger & visualizer.
+TimePlot -- log your activity, visualize and analyze it.
 
-Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks or potentially fight procrastination.
-Or maybe just get new cool graphs.:)
+Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks and potentially fight procrastination. Or maybe just get new cool graphs.:)
 
 
 ## Usage
