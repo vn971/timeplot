@@ -14,7 +14,7 @@ chrono = "0.4"
 fs2 = "0.4.3"
 gnuplot = "0.0.26"
 directories = "1.0"
-open = "*"
+open = "1.2.2"
 
 [dependencies.config]
 version = "0.9"
