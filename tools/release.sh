@@ -19,6 +19,7 @@ cargo build --target=i686-unknown-linux-musl --release
 upx target/i686-unknown-linux-musl/release/timeplot
 cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
 
+cargo publish
 
 version=$(cat Cargo.toml | head | grep version | sed 's/.*"\(.*\)"/\1/')
 git tag -m "release" "$version"
