@@ -18,8 +18,8 @@ Or maybe just get new cool graphs.:)
 2018-10-01_21:31 personal 13 vasya@vn971think:~
 ```
 * If the category is wrong, fix the category right in the log.
-* Edit rules to auto-categorize this window name in the future: `~/.config/timeplot/rules_simple.txt`.
-* Wait for timeplot to re-draw the plot (`~/Pictures/timeplot`)
+* Edit rules to auto-categorize this window name in the future
+* Wait for timeplot to re-draw the image
 <img src="docs/png.png" width="800" /><!-- screenshot params: pngcairo 1200,170, 2.9 -->
 * Whenever you want to check the text log, or see if it can be improved, return 3 steps back.
 
@@ -27,9 +27,10 @@ Or maybe just get new cool graphs.:)
 ## Hints
 
 * You can set the image as your Desktop background image if you like.
-* You can configure the app by editing ~/.config/timeplot/config.toml  (plot a different number of days, configure colors, statistics display, etc).
-* If you have trouble finding the directories, run `timeplot` from terminal. It will print the directories.
-* If you're curious on what the number means in the logs: it means your desktop "workstation" number, usually 1-4. It's logged, but it's not yet usable in "rules_simple.txt". Hopefully it'll be usable in future versions of timeplot.
+* You can configure the app:
+* * plot a different number of days
+* * colors, statistics display
+* * run configured subcommands whenever a particular category is encountered
 
 
 ## Installation

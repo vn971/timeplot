@@ -199,9 +199,6 @@ fn assert_command_success(child: &Output) {
 
 
 fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -> String {
-	if activity_info.idle_seconds > 60 * 3 { // 3min
-		return "skip".to_string();
-	}
 	let window_name = activity_info.window_name.to_lowercase();
 	let rules_file = File::open(dirs.config_dir().join(RULES_FILE_NAME)).unwrap();
 	let rules_file = BufReader::new(rules_file);
@@ -280,13 +277,40 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 	}
 }
 
+fn run_category_command(conf: &Config, category: &str, window_name: &str) {
+	let conf_key = format!("category.{}.command", category);
+	let command = conf.get::<Vec<String>>(&conf_key);
+	if command.is_err() {
+		eprintln!("Failed to parse command for category {}", category);
+		return;
+	}
+	let command = command.unwrap();
+	if command.is_empty() {
+		eprintln!("Empty command for category {}", category);
+		return;
+	};
+	let left = command.first().unwrap();
+	let child = Command::new(left).args(&command[1..])
+		.env("CATEGORY", category).env("WINDOW_NAME", window_name).output();
+	if child.is_err() {
+		eprintln!("Failed to run command for category {}: `{}`", category, command);
+	} else if child.unwrap().status.success() == false {
+		eprintln!("WARNING: Non-zero exit code for category {}, command {:?}", category, &command);
+	}
+}
 
-fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf) {
+fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 	let mut activity_info = get_window_activity_info(dirs);
 	activity_info.window_name = activity_info.window_name.trim().replace("\n", " ");
-	env::set_var("WINDOW_NAME", &activity_info.window_name);
+	if activity_info.idle_seconds > 60 * 3 { // 3min
+		eprintln!("skipping log due to inactivity time: {}sec, {}",
+			activity_info.idle_seconds,
+			activity_info.window_name
+		);
+		return;
+	}
 	let category = get_category(&activity_info, dirs);
-	env::set_var("CATEGORY", &category);
+	run_category_command(conf, &category, &activity_info.window_name);
 
 	let mut file = OpenOptions::new()
 		.append(true).create(true)
@@ -372,7 +396,7 @@ fn main() {
 
 	loop {
 		conf.refresh().unwrap();
-		do_save_current(&dirs, &image_dir);
+		do_save_current(&dirs, &image_dir, &conf);
 		do_plot(&image_dir, &conf);
 		let sleep_min = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
 		std::thread::sleep(Duration::from_secs((sleep_min * 60.0) as u64));

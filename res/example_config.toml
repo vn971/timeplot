@@ -26,7 +26,6 @@ color="orange"
 color="red"
 # Example command. Lock screen if it's too late (22:00) or too early (10:00).
 # command=["sh", "-c", "(test $(date '+%k') -ge 22 || test $(date '+%k') -le 10) && xscreensaver-command -lock || true"]
-# TODO
 
 [category.education]
 color="green"
