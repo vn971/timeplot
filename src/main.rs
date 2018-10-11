@@ -281,7 +281,6 @@ fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 	let conf_key = format!("category.{}.command", category);
 	let command = conf.get::<Vec<String>>(&conf_key);
 	if command.is_err() {
-		eprintln!("Failed to parse command for category {}", category);
 		return;
 	}
 	let command = command.unwrap();
