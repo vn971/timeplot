@@ -6,7 +6,7 @@ show_directories=true  # opens config directory and the resulting image
 
 [main]
 plot_days=5.0
-sleep_minutes=3.0  # how long to wait for next iteration (ideally 1-5 min)
+sleep_minutes=1.0  # how long to wait for next iteration
 
 [graph]
 line_format="%category% (%hours%h)"  # Set to "" to hide completely.
@@ -17,7 +17,7 @@ smoothing=1.0
 
 
 [category.work]
-color="black"  # names or codes "#FF00CC" are accepted
+color="black"  # Example: "black", "#FF00CC", "#7FFF00CC"
 
 [category.personal]
 color="orange"
