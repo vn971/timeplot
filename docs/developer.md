@@ -13,3 +13,4 @@ Platform-specific TODO:
 * idle time on Windows
 * idle time on MacOS
 * ?use something more lightweight on Linux?
+* fail-safe log parsing (and less .unwrap() in general)

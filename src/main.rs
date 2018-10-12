@@ -89,6 +89,7 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 		log_file.read_line(&mut line).unwrap();
 		if line.is_empty() || parse_log_line(&line).epoch_seconds > min_time {
 			log_file.seek(SeekFrom::Start(pos - FILE_SEEK)).unwrap();
+			if pos - FILE_SEEK > 0 { log_file.read_line(&mut String::new()).unwrap(); }
 			break;
 		}
 	}
