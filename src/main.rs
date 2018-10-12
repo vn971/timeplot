@@ -155,7 +155,9 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 		} else {
 			axes.set_x_ticks(None, &[], &[]);
 		}
-		for category in categories.values_mut() {
+		let mut categories: Vec<_> = categories.values().collect();
+		categories.sort_unstable_by(|a, b| a.time_impact.cmp(&b.time_impact));
+		for category in categories {
 			let hours = format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0);
 			let caption = label_format.replace("%hours%", &hours)
 				.replace("%category%", &category.category_name);
