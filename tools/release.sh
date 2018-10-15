@@ -16,7 +16,7 @@ if ! test -z "$(git status --porcelain)"; then # no uncommited local changes
 fi
 
 cargo build --target=i686-unknown-linux-musl --release
-upx target/i686-unknown-linux-musl/release/timeplot
+upx --ultra-brute target/i686-unknown-linux-musl/release/timeplot
 cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
 
 cargo publish
