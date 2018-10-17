@@ -218,7 +218,7 @@ fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -
 		if line.starts_with("#") || line.is_empty() {
 			continue;
 		}
-		let split: Vec<&str> = line.splitn(2, ' ').collect();
+		let split: Vec<&str> = line.trim_left().splitn(2, ' ').collect();
 		let category = *split.get(0).unwrap();
 		let window_pattern = *split.get(1).unwrap_or(&"");
 		let window_pattern = window_pattern.to_lowercase();
