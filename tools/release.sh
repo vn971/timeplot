@@ -1,5 +1,6 @@
 #!/bin/bash -euET
 {
+set -o pipefail
 
 err_exit() {
 	>&2 printf '%s\n' "$*"
@@ -15,6 +16,7 @@ if ! test -z "$(git status --porcelain)"; then # no uncommited local changes
   err_exit "error: uncommitted changes"
 fi
 
+cargo build --release
 cargo build --target=i686-unknown-linux-musl --release
 upx --ultra-brute target/i686-unknown-linux-musl/release/timeplot
 cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
