@@ -198,13 +198,14 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 	}
 }
 
-fn assert_command_success(child: &Output) {
-	assert!(child.status.success(),
-		"ERROR: command failed with exit code {:?}\nStdErr: {}\nStdOut: {}",
-		child.status.code(),
-		String::from_utf8_lossy(&child.stderr),
-		String::from_utf8_lossy(&child.stdout),
-	);
+fn log_command_failure(child: &Output) {
+	if child.status.success() == false {
+		eprintln!("WARNING: command failed with exit code {:?}\nStderr: {}\nStdout: {}",
+			child.status.code(),
+			String::from_utf8_lossy(&child.stderr),
+			String::from_utf8_lossy(&child.stdout),
+		);
+	}
 }
 
 
@@ -239,7 +240,7 @@ struct WindowActivityInformation {
 #[cfg(target_os = "macos")]
 fn get_window_activity_info(dirs: &ProjectDirs) -> WindowActivityInformation {
 	let command = Command::new(dirs.config_dir().join(MAC_SCRIPT_NAME)).output().unwrap();
-	assert_command_success(&command);
+	log_command_failure(&command);
 	WindowActivityInformation {
 		window_name: String::from_utf8_lossy(&command.stdout).to_string(),
 		idle_seconds: 0,
@@ -268,7 +269,7 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 		.arg("getactivewindow")
 		.arg("getwindowname")
 		.output().unwrap();
-	assert_command_success(&command);
+	log_command_failure(&command);
 
 	let idle_time = match Command::new("xprintidle").output() {
 		Err(err) => {
