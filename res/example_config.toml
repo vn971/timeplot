@@ -14,6 +14,7 @@ show_day_labels=true
 size="1920,300"
 height_scale=2.0
 smoothing=1.0
+day_starts_at_00=true  # put "zero" graph labels now, or 00:00 of today?
 
 
 [category.work]

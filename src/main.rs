@@ -162,6 +162,12 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 			let hours = format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0);
 			let caption = label_format.replace("%hours%", &hours)
 				.replace("%category%", &category.category_name);
+			let day_starts_at_00 = conf.get_bool("graph.day_starts_at_00").unwrap_or(true);
+			let time_now = if day_starts_at_00 {
+				Utc::now().date().and_hms(0, 0, 0).timestamp_millis() / 1000
+			} else {
+				Utc::now().timestamp_millis() / 1000
+			};
 			let x_coord: Vec<_> = category.keys.iter().map(|x|
 				(*x as f64 - time_now as f64) / 60.0 / 60.0 / 24.0
 			).collect();
