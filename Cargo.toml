@@ -1,6 +1,6 @@
 [package]
 name = "timeplot"
-version = "0.7.6"
+version = "0.7.7"
 description = "Personal activity tracker & graph plotter"
 authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 license="GPL-3.0-or-later"
@@ -11,9 +11,11 @@ readme = "README.md"
 
 [dependencies]
 chrono = "0.4"
+directories = "1.0"
+env_logger = "0.5.13"
 fs2 = "0.4.3"
 gnuplot = "0.0.26"
-directories = "1.0"
+log = "0.4"
 open = "1.2.2"
 
 [dependencies.config]

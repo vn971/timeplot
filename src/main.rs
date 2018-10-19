@@ -1,15 +1,16 @@
 #[global_allocator]
 static GLOBAL: std::alloc::System = std::alloc::System;
 
-#[cfg(target_os = "windows")] extern crate user32;
-#[cfg(target_os = "windows")] extern crate winapi;
 extern crate chrono;
 extern crate config;
 extern crate directories;
+extern crate env_logger;
 extern crate fs2;
 extern crate gnuplot;
 extern crate open;
-
+#[macro_use] extern crate log;
+#[cfg(target_os = "windows")] extern crate user32;
+#[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "macos")] use std::os::unix::fs::PermissionsExt;
 
 use chrono::prelude::*;
@@ -200,7 +201,7 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 
 fn log_command_failure(child: &Output) {
 	if child.status.success() == false {
-		eprintln!("WARNING: command failed with exit code {:?}\nStderr: {}\nStdout: {}",
+		warn!("command failed with exit code {:?}\nStderr: {}\nStdout: {}",
 			child.status.code(),
 			String::from_utf8_lossy(&child.stderr),
 			String::from_utf8_lossy(&child.stdout),
@@ -227,7 +228,7 @@ fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -
 			return category.to_string();
 		}
 	}
-	eprintln!("Could not find any category for: {}", window_name);
+	warn!("Could not find any category for: {}", window_name);
 	"skip".to_string()
 }
 
@@ -253,7 +254,7 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 		let hwnd = user32::GetForegroundWindow();
 		let err_code = user32::GetWindowTextW(hwnd, vec.as_mut_ptr(), WINDOW_MAX_LENGTH as i32);
 		if err_code != 0 {
-			eprintln!("ERROR: window name extraction failed!");
+			warn!("window name extraction failed!");
 		}
 		assert!(vec.capacity() >= WINDOW_MAX_LENGTH as usize);
 		vec.set_len(WINDOW_MAX_LENGTH as usize);
@@ -273,7 +274,7 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 
 	let idle_time = match Command::new("xprintidle").output() {
 		Err(err) => {
-			eprintln!("Failed to run xprintidle. Assuming window is not idle. Error: {}", err);
+			warn!("Failed to run xprintidle. Assuming window is not idle. Error: {}", err);
 			0
 		},
 		Ok(output) => {
@@ -296,16 +297,16 @@ fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 	}
 	let command = command.unwrap();
 	if command.is_empty() {
-		eprintln!("Empty command for category {}", category);
+		warn!("Empty command for category {}", category);
 		return;
 	};
 	let left = command.first().unwrap();
 	let child = Command::new(left).args(&command[1..])
 		.env("CATEGORY", category).env("WINDOW_NAME", window_name).output();
 	if child.is_err() {
-		eprintln!("Failed to run command for category {}: `{:?}`", category, command);
+		warn!("Failed to run command for category {}: `{:?}`", category, command);
 	} else if child.unwrap().status.success() == false {
-		eprintln!("WARNING: Non-zero exit code for category {}, command {:?}", category, &command);
+		warn!("Non-zero exit code for category {}, command {:?}", category, &command);
 	}
 }
 
@@ -313,7 +314,7 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 	let mut activity_info = get_window_activity_info(dirs);
 	activity_info.window_name = activity_info.window_name.trim().replace("\n", " ");
 	if activity_info.idle_seconds > 60 * 3 { // 3min
-		eprintln!("skipping log due to inactivity time: {}sec, {}",
+		info!("skipping log due to inactivity time: {}sec, {}",
 			activity_info.idle_seconds,
 			activity_info.window_name
 		);
@@ -329,7 +330,7 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 		Utc::now().format(DATE_FORMAT),
 		category,
 		activity_info.window_name.chars().take(WINDOW_MAX_LENGTH).collect::<String>());//todo vn
-	eprintln!("logging: {}", log_line);
+	info!("logging: {}", log_line);
 	file.write_all(log_line.as_bytes()).unwrap();
 	file.write_all("\n".as_bytes()).unwrap();
 }
@@ -368,7 +369,9 @@ fn ensure_env(key: &str, value: &str) {
 }
 
 fn main() {
-	eprintln!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
+	ensure_env("RUST_LOG", "timeplot=info");
+	env_logger::init();
+	info!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
 
 	let user_dirs = UserDirs::new().unwrap();
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
@@ -380,9 +383,9 @@ fn main() {
 	ensure_env("DISPLAY", ":0.0");
 	ensure_env("XAUTHORITY", user_dirs.home_dir().join(".Xauthority").to_str().unwrap());
 
-	eprintln!("Config dir: {}", dirs.config_dir().to_str().unwrap());
+	info!("Config dir: {}", dirs.config_dir().to_str().unwrap());
 	fs::create_dir_all(dirs.config_dir()).unwrap();
-	eprintln!("Image dir: {}", image_dir.to_str().unwrap());
+	info!("Image dir: {}", image_dir.to_str().unwrap());
 	fs::create_dir_all(&image_dir).unwrap();
 
 	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), &include_str!("../res/example_rules_simple.txt"));
