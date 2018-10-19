@@ -370,7 +370,14 @@ fn ensure_env(key: &str, value: &str) {
 
 fn main() {
 	ensure_env("RUST_LOG", "timeplot=info");
-	env_logger::init();
+	env_logger::Builder::from_default_env()
+		.format(|buf, record| writeln!(buf,
+			"{} [{}] - {}",
+			Local::now().naive_utc().format("%Y-%m-%d %H:%M:%S"),
+			record.level(),
+			record.args()
+		))
+		.init();
 	info!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
 
 	let user_dirs = UserDirs::new().unwrap();
