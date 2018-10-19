@@ -373,7 +373,7 @@ fn main() {
 	env_logger::Builder::from_default_env()
 		.format(|buf, record| writeln!(buf,
 			"{} [{}] - {}",
-			Local::now().naive_utc().format("%Y-%m-%d %H:%M:%S"),
+			Utc::now().format("%Y-%m-%d %H:%M:%S"),
 			record.level(),
 			record.args()
 		))
