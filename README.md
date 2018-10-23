@@ -1,6 +1,6 @@
-## About
+## TimePlot  [![crates.io](https://img.shields.io/crates/v/timeplot.svg)](https://crates.io/crates/timeplot)
 
-TimePlot -- log your activity, visualize and analyze it.
+Log your activity, visualize and analyze it.
 
 Visualizing your performance can help you understand how certain things impact your computer work, properly bill customers for freelance tasks and potentially fight procrastination. Or maybe just get new cool graphs.:)
 
@@ -40,6 +40,7 @@ Visualizing your performance can help you understand how certain things impact y
 * * On Windows, install [gnuplot](https://sourceforge.net/projects/gnuplot/files/gnuplot/)
 * * On macOS, `brew install gnuplot`
 2. Build the project:
+* * On all platforms, if you're familiar with Rust+cargo, install via `cargo install timeplot`.
 * * On Linux, you can download pre-built version: [https://pointsgame.net/vn971/temp/tpl/timeplot](https://pointsgame.net/vn971/temp/tpl/timeplot)  and make it executable by doing `chmod +x timeplot`
 * * On all platforms, clone/download this repository, install `cargo`, build project with `cargo build --release`, observe the executable on "target/release/timeplot".
 3. Consider adding `timeplot` to autostart, making it run when you log in. If you use macOS or Windows, you must create said autostart hook manually (help on allowing to automate it appreciated). For Linux, there's a configuration setting that, if enabled, will create XDG autostart entry for you.
