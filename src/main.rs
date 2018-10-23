@@ -369,7 +369,7 @@ fn ensure_env(key: &str, value: &str) {
 }
 
 fn main() {
-	ensure_env("RUST_LOG", "timeplot=info");
+	ensure_env("RUST_LOG", "info");
 	env_logger::Builder::from_default_env()
 		.format(|buf, record| writeln!(buf,
 			"{} [{}] - {}",
@@ -378,7 +378,7 @@ fn main() {
 			record.args()
 		))
 		.init();
-	info!("Timeplot version {}", env!("CARGO_PKG_VERSION"));
+	info!("{} version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
 	let user_dirs = UserDirs::new().unwrap();
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
