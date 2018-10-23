@@ -153,7 +153,7 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 			.set_border(false, &[], &[])
 			.set_y_range(Fix(-0.1), Fix(conf.get_float("graph.height_scale").expect(CONFIG_PARSE_ERROR)));
 		if show_days {
-			axes.set_x_ticks(Some((Auto, 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[]);
+			axes.set_x_ticks(Some((Fix(1.0), 0)), &[OnAxis(false), Inward(false), Mirror(false)], &[]);
 		} else {
 			axes.set_x_ticks(None, &[], &[]);
 		}
