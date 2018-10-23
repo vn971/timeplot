@@ -2,7 +2,7 @@ sudo: false
 
 language: rust
 rust:
-  - 1.16.0  # `cargo check` support
+  - 1.20.0  # `cargo check --all` support
   - stable
   - nightly
 
