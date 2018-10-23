@@ -9,7 +9,3 @@ cache: cargo
 
 script:
   - cargo check --verbose --all
-
-notifications:
-  email:
-on_success: never
