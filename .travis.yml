@@ -2,7 +2,6 @@ sudo: false
 
 language: rust
 rust:
-  - 1.28.0  # minimum version, support for system allocator
   - stable
   - nightly
 

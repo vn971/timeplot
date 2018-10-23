@@ -1,4 +1,4 @@
-## TimePlot  [![crates.io](https://img.shields.io/crates/v/timeplot.svg)](https://crates.io/crates/timeplot)
+## TimePlot  [![crates.io](https://img.shields.io/crates/v/timeplot.svg)](https://crates.io/crates/timeplot)  [![Build Status](https://travis-ci.org/vn971/timeplot.svg?branch=master)](https://travis-ci.org/vn971/timeplot)
 
 Log your activity, visualize and analyze it.
 
