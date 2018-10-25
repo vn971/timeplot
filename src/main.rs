@@ -11,7 +11,6 @@ extern crate open;
 #[macro_use] extern crate log;
 #[cfg(target_os = "windows")] extern crate user32;
 #[cfg(target_os = "windows")] extern crate winapi;
-#[cfg(target_os = "macos")] use std::os::unix::fs::PermissionsExt;
 
 use chrono::prelude::*;
 use config::Config;
@@ -30,7 +29,6 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use std::process::Output;
 use std::time::Duration;
 
 const WINDOW_MAX_LENGTH: usize = 200;
@@ -199,7 +197,8 @@ fn ensure_file(filename: &PathBuf, content: &str) {
 	}
 }
 
-fn log_command_failure(child: &Output) {
+#[cfg(not(target_os = "windows"))]
+fn log_command_failure(child: &std::process::Output) {
 	if child.status.success() == false {
 		warn!("command failed with exit code {:?}\nStderr: {}\nStdout: {}",
 			child.status.code(),
@@ -351,11 +350,10 @@ pub fn prepare_scripts(_: &ProjectDirs) {
 }
 #[cfg(target_os = "macos")]
 pub fn prepare_scripts(dirs: &ProjectDirs) { // main_prepare_files
+	use std::os::unix::fs::PermissionsExt;
 	let path = dirs.config_dir().join(MAC_SCRIPT_NAME);
 	ensure_file(&path, &include_str!("../res/macos_get_title.scpt"));
-	let mut perms = fs::metadata(&path).unwrap().permissions();
-	perms.set_mode(0o755);
-	fs::set_permissions(path, perms).unwrap();
+	fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
 }
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
 pub fn prepare_scripts(_: &ProjectDirs) {
