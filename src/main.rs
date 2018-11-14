@@ -239,7 +239,8 @@ struct WindowActivityInformation {
 
 #[cfg(target_os = "macos")]
 fn get_window_activity_info(dirs: &ProjectDirs) -> WindowActivityInformation {
-	let command = Command::new(dirs.config_dir().join(MAC_SCRIPT_NAME)).output().unwrap();
+	let command = Command::new(dirs.config_dir().join(MAC_SCRIPT_NAME))
+		.expect("window title extraction script failed to launch").unwrap();
 	log_command_failure(&command);
 	WindowActivityInformation {
 		window_name: String::from_utf8_lossy(&command.stdout).to_string(),
@@ -268,7 +269,7 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 	let command = Command::new("xdotool")
 		.arg("getactivewindow")
 		.arg("getwindowname")
-		.output().unwrap();
+		.output().expect("ERROR: command not found: xdotool");
 	log_command_failure(&command);
 
 	let idle_time = match Command::new("xprintidle").output() {
@@ -389,23 +390,24 @@ fn main() {
 	ensure_env("XAUTHORITY", user_dirs.home_dir().join(".Xauthority").to_str().unwrap());
 
 	info!("Config dir: {}", dirs.config_dir().to_str().unwrap());
-	fs::create_dir_all(dirs.config_dir()).unwrap();
+	fs::create_dir_all(dirs.config_dir()).expect("Failed to create config dir");
 	info!("Image dir: {}", image_dir.to_str().unwrap());
-	fs::create_dir_all(&image_dir).unwrap();
+	fs::create_dir_all(&image_dir).expect("Failed to create image dir");
 
 	ensure_file(&dirs.config_dir().join(RULES_FILE_NAME), &include_str!("../res/example_rules_simple.txt"));
 	let config_path = dirs.config_dir().join("config.toml");
 	ensure_file(&config_path, include_str!("../res/example_config.toml"));
 
 	let mut conf = config::Config::default();
-	conf.merge(config::File::with_name(config_path.to_str().unwrap())).unwrap();
+	conf.merge(config::File::with_name(config_path.to_str().unwrap())).expect("Failed to read config file");
 
 	if conf.get_bool("beginner.create_autostart_entry").unwrap_or(false) {
 		add_to_autostart();
 	}
 	if conf.get_bool("beginner.show_directories").unwrap_or(true) {
-		open::that(dirs.config_dir()).unwrap();
-		open::that(&image_dir).unwrap();
+		open::that(dirs.config_dir()).err()
+			.map(|_| eprintln!("Debug: failed to `open` config directory"));
+		open::that(&image_dir).err().map(|_| eprintln!("Debug: failed to `open` image directory"));
 	}
 	prepare_scripts(&dirs);
 
