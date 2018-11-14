@@ -240,7 +240,7 @@ struct WindowActivityInformation {
 #[cfg(target_os = "macos")]
 fn get_window_activity_info(dirs: &ProjectDirs) -> WindowActivityInformation {
 	let command = Command::new(dirs.config_dir().join(MAC_SCRIPT_NAME))
-		.expect("window title extraction script failed to launch").unwrap();
+		.output().expect("window title extraction script failed to launch");
 	log_command_failure(&command);
 	WindowActivityInformation {
 		window_name: String::from_utf8_lossy(&command.stdout).to_string(),

@@ -23,8 +23,8 @@ cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
 
 cargo publish
 
-version=$(cat Cargo.toml | head | grep version | sed 's/.*"\(.*\)"/\1/')
-git tag -m "release" "$version"
+tag=$(cat Cargo.toml | head | grep version | sed 's/.*"\(.*\)"/\1/')
+git tag -m "release" "$tag"
 
 exit
 }
