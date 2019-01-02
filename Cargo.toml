@@ -2,12 +2,12 @@
 name = "timeplot"
 version = "0.7.10"
 description = "Personal activity tracker & graph plotter"
+edition = "2018"
 authors = ["Vasya Novikov <n1dr+cm3513git@ya.ru>"]
 license="GPL-3.0-or-later"
 keywords = ["graph", "plot", "time", "tracker", "logger"]
 repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
-
 
 [dependencies]
 chrono = "0.4"
