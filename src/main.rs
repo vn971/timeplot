@@ -82,14 +82,17 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	let mut pos = 0;
 	loop {
 		pos += FILE_SEEK;
-		log_file.seek(SeekFrom::Start(pos)).unwrap();
+		log_file.seek(SeekFrom::Start(pos)).expect(&format!("{}:{} seeking failed", file!(), line!()));
+		log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
+		log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
 		let mut line = String::new();
-		log_file.read_line(&mut String::new()).unwrap();
 		log_file.read_line(&mut line).unwrap();
 		if line.is_empty() || parse_log_line(&line).epoch_seconds > min_time {
 			pos -= FILE_SEEK;
 			log_file.seek(SeekFrom::Start(pos)).unwrap();
-			if pos > 0 { log_file.read_line(&mut String::new()).unwrap(); }
+			if pos > 0 {
+				log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
+			}
 			break;
 		}
 	}
