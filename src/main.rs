@@ -122,7 +122,7 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 		while last_time > line.epoch_seconds + sleep_seconds {
 			last_time -= sleep_seconds;
 			for category in categories.values_mut() {
-				let last = category.values.last().map(|x| *x);
+				let last = category.values.last().cloned();
 				category.keys.push(last_time);
 				category.values.push(last.unwrap_or(0.0) * data_absence_modifier);
 			}
@@ -135,7 +135,7 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 				category.time_impact += min(time_diff, sleep_seconds);
 			};
 			let latest = if line.category == category.category_name { 1.0 } else { 0.0 };
-			let old_value = category.values.last().map(|x| *x).unwrap_or(latest);
+			let old_value = category.values.last().cloned().unwrap_or(latest);
 			let new_value = Some(latest * weight_new + old_value * weight_old);
 			category.keys.push(line.epoch_seconds);
 			category.values.push(new_value.unwrap_or(0.0));
@@ -220,11 +220,11 @@ fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -
 
 	for line in rules_file.lines() {
 		let line = line.unwrap();
-		if line.starts_with("#") || line.is_empty() {
+		if line.starts_with('#') || line.is_empty() {
 			continue;
 		}
 		let split: Vec<&str> = line.trim_start().splitn(2, ' ').collect();
-		let category = *split.get(0).unwrap();
+		let category = split[0];
 		let window_pattern = *split.get(1).unwrap_or(&"");
 		let window_pattern = window_pattern.to_lowercase();
 		if window_name.contains(&window_pattern) {
