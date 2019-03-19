@@ -16,6 +16,7 @@ use chrono::prelude::*;
 use config::Config;
 use directories::ProjectDirs;
 use directories::UserDirs;
+use env_logger::Env;
 use fs2::FileExt;
 use std::cmp::min;
 use std::collections::HashMap;
@@ -364,23 +365,27 @@ pub fn prepare_scripts(_: &ProjectDirs) {
 }
 
 
-fn ensure_env(key: &str, value: &str) {
+fn default_env(key: &str, value: &str) {
 	if env::var_os(key).is_none() {
 		env::set_var(key, value);
 	}
 }
 
 fn main() {
-	ensure_env("RUST_LOG", "info");
-	env_logger::Builder::from_default_env()
-		.format(|buf, record| writeln!(buf,
-			"{} [{}] - {}",
-			Utc::now().format("%Y-%m-%d %H:%M:%S"),
-			record.level(),
-			record.args()
-		))
+	default_env("RUST_BACKTRACE", "1"); // if it wasn't set to "0" explicitly, set it to 1.
+	default_env("RUST_LOG", "info");
+	env_logger::Builder::from_env(Env::default().filter_or("LOG_LEVEL", "info"))
+		.format(|buf, record| {
+			writeln!(
+				buf,
+				"{} [{}] - {}",
+				Utc::now().format("%Y-%m-%d %H:%M:%S"),
+				record.level(),
+				record.args()
+			)
+		})
 		.init();
-	info!("{} version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+	debug!("{} version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
 	let user_dirs = UserDirs::new().unwrap();
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
@@ -388,9 +393,9 @@ fn main() {
 		.map(|f| f.join("timeplot"))
 		.unwrap_or(dirs.data_local_dir().to_path_buf());
 
-	ensure_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
-	ensure_env("DISPLAY", ":0.0");
-	ensure_env("XAUTHORITY", user_dirs.home_dir().join(".Xauthority").to_str().unwrap());
+	default_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
+	default_env("DISPLAY", ":0.0");
+	default_env("XAUTHORITY", user_dirs.home_dir().join(".Xauthority").to_str().unwrap());
 
 	info!("Config dir: {}", dirs.config_dir().to_str().unwrap());
 	fs::create_dir_all(dirs.config_dir()).expect("Failed to create config dir");
