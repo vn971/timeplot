@@ -2,18 +2,17 @@
 {
 set -o pipefail
 
-err_exit() {
-	>&2 printf '%s\n' "$*"
-	exit 1
-}
+cargo upgrade
+cargo update
 
 # check code and update Cargo.lock:
 cargo check --target i686-pc-windows-gnu
 cargo check --target i686-unknown-linux-musl
 cargo check --target i686-apple-darwin
 
-if ! test -z "$(git status --porcelain)"; then # no uncommited local changes
-  err_exit "error: uncommitted changes"
+if ! test -z "$(git status --porcelain)"; then
+	>&2 printf '%s\n' "error: uncommitted changes"
+	exit 1
 fi
 
 cargo build --release
@@ -23,7 +22,7 @@ cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
 
 cargo publish
 
-tag=$(cat Cargo.toml | head | grep version | sed 's/.*"\(.*\)"/\1/')
+tag=$(cat Cargo.toml | grep -m1 version | sed 's/.*"\(.*\)"/\1/')
 git tag -m "release" "$tag"
 
 exit
