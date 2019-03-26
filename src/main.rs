@@ -220,10 +220,11 @@ fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -
 
 	for line in rules_file.lines() {
 		let line = line.unwrap();
+		let line = line.trim_start();
 		if line.starts_with('#') || line.is_empty() {
 			continue;
 		}
-		let split: Vec<&str> = line.trim_start().splitn(2, ' ').collect();
+		let split: Vec<&str> = line.splitn(2, ' ').collect();
 		let category = split[0];
 		let window_pattern = *split.get(1).unwrap_or(&"");
 		let window_pattern = window_pattern.to_lowercase();
