@@ -27,6 +27,7 @@ use std::fs;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::SeekFrom;
+use std::ops::Not;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -76,29 +77,30 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 
 	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
 	let min_time = time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64;
-	let log_file = File::open(image_dir.join(LOG_FILE_NAME)).unwrap();
+	let log_file = image_dir.join(LOG_FILE_NAME);
+	let log_file = File::open(&log_file).unwrap_or_else(|err| panic!("Failed to open log file {:?}, {}", log_file, err));
 	let mut log_file = BufReader::new(log_file);
 
 	// seek forward until we reach recent entries
 	let mut pos = 0;
 	loop {
 		pos += FILE_SEEK;
-		log_file.seek(SeekFrom::Start(pos)).expect(&format!("{}:{} seeking failed", file!(), line!()));
-		log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
-		log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
+		log_file.seek(SeekFrom::Start(pos)).unwrap_or_else(|err| panic!("{}:{} seeking failed, {}", file!(), line!(), err));
+		log_file.read_until(b'\n', &mut Vec::new()).unwrap_or_else(|err| panic!("{}:{}, failed reading till first newline {}", file!(), line!(), err));
+		log_file.read_until(b'\n', &mut Vec::new()).unwrap_or_else(|err| panic!("{}:{}, failed reading till second newline {}", file!(), line!(), err));
 		let mut line = String::new();
-		log_file.read_line(&mut line).unwrap();
+		log_file.read_line(&mut line).expect("Failed to read line from log (file seeking to find latest entries)");
 		if line.is_empty() || parse_log_line(&line).epoch_seconds > min_time {
 			pos -= FILE_SEEK;
-			log_file.seek(SeekFrom::Start(pos)).unwrap();
+			log_file.seek(SeekFrom::Start(pos)).expect("Failed to seek log file (to find latest entries)");
 			if pos > 0 {
-				log_file.read_until('\n' as u8, &mut Vec::new()).expect(&format!("{}:{}", file!(), line!()));
+				log_file.read_until(b'\n', &mut Vec::new()).unwrap_or_else(|err| panic!("{}:{}, {}", file!(), line!(), err));
 			}
 			break;
 		}
 	}
 
-	let mut lines: Vec<_> = log_file.lines().map(|l| parse_log_line(&l.unwrap())).collect();
+	let mut lines: Vec<_> = log_file.lines().map(|l| parse_log_line(&l.expect("failed to get log line"))).collect();
 	lines.reverse();
 
 	let mut categories: HashMap<&str, CategoryData> = HashMap::new();
@@ -108,11 +110,11 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	for line in lines.iter_mut() {
 		if line.epoch_seconds < min_time { continue; }
 		if !conf.get_bool(&format!("category.{}.hide", &line.category)).unwrap_or(false)
-			&& categories.contains_key(line.category.as_str()) == false {
+			&& categories.contains_key(line.category.as_str()).not() {
 			let is_empty = categories.is_empty();
 			categories.insert(&line.category, CategoryData {
 				category_name: line.category.to_string(),
-				color: conf.get_str(&format!("category.{}.color", &line.category)).unwrap_or("black".to_string()).to_string(),
+				color: conf.get_str(&format!("category.{}.color", &line.category)).unwrap_or_else(|_| "black".to_string()).to_string(),
 				time_impact: 0,
 				values: if is_empty { Vec::new() } else { vec![0.0] },
 				keys: if is_empty { Vec::new() } else { vec![last_time] },
@@ -195,15 +197,15 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 
 
 fn ensure_file(filename: &PathBuf, content: &str) {
-	if Path::new(&filename).exists() == false {
-		let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap();
-		file.write_all(content.as_bytes()).unwrap();
+	if Path::new(&filename).exists().not() {
+		let mut file = OpenOptions::new().create(true).write(true).open(filename).unwrap_or_else(|err| panic!("Failed to open or create file {:?}, {}", filename, err));
+		file.write_all(content.as_bytes()).unwrap_or_else(|err| panic!("failed to write to file {:?}, {}", filename, err));
 	}
 }
 
 #[cfg(not(target_os = "windows"))]
 fn log_command_failure(child: &std::process::Output) {
-	if child.status.success() == false {
+	if child.status.success().not() {
 		warn!("command failed with exit code {:?}\nStderr: {}\nStdout: {}",
 			child.status.code(),
 			String::from_utf8_lossy(&child.stderr),
@@ -215,11 +217,12 @@ fn log_command_failure(child: &std::process::Output) {
 
 fn get_category(activity_info: &WindowActivityInformation, dirs: &ProjectDirs) -> String {
 	let window_name = activity_info.window_name.to_lowercase();
-	let rules_file = File::open(dirs.config_dir().join(RULES_FILE_NAME)).unwrap();
+	let rules_file = dirs.config_dir().join(RULES_FILE_NAME);
+	let rules_file = File::open(&rules_file).unwrap_or_else(|err| panic!("Failed to open rules file {:?}, {}", rules_file, err));
 	let rules_file = BufReader::new(rules_file);
 
-	for line in rules_file.lines() {
-		let line = line.unwrap();
+	for (line_number, line) in rules_file.lines().enumerate() {
+		let line = line.unwrap_or_else(|err| panic!("failed to read rules on line {}, {}", line_number, err));
 		let line = line.trim_start();
 		if line.starts_with('#') || line.is_empty() {
 			continue;
@@ -265,7 +268,7 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 		vec.set_len(WINDOW_MAX_LENGTH as usize);
 	};
 	WindowActivityInformation {
-		window_name: String::from_utf16(&vec).unwrap(),
+		window_name: String::from_utf16_lossy(&vec),
 		idle_seconds: 0,
 	}
 }
@@ -283,8 +286,12 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 			0
 		},
 		Ok(output) => {
-			let output = String::from_utf8(output.stdout).unwrap();
-			output.trim().parse::<u32>().unwrap() / 1000
+			let output = String::from_utf8_lossy(&output.stdout);
+			let output = output.trim();
+			output.parse::<u32>().unwrap_or_else(|err| {
+				warn!("Failed to parse xprintidle output '{}', error is: {}", output, err);
+				0
+			}) / 1000
 		}
 	};
 
@@ -296,22 +303,27 @@ fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
 
 fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 	let conf_key = format!("category.{}.command", category);
-	let command = conf.get::<Vec<String>>(&conf_key);
-	if command.is_err() {
-		return;
-	}
-	let command = command.unwrap();
-	if command.is_empty() {
-		warn!("Empty command for category {}", category);
-		return;
+	let category_command = conf.get::<Vec<String>>(&conf_key);
+
+	let category_command = match category_command {
+		Ok(command) => command,
+		Err(_) => return, // it's OK to not define a command for a category
 	};
-	let left = command.first().unwrap();
-	let child = Command::new(left).args(&command[1..])
+	let executable_name = match category_command.first() {
+		Some(executable) => executable,
+		None => {
+			warn!("Empty command for category {}, better remove command altogether", category);
+			return;
+		}
+	};
+	let child = Command::new(executable_name).args(&category_command[1..])
 		.env("CATEGORY", category).env("WINDOW_NAME", window_name).output();
-	if child.is_err() {
-		warn!("Failed to run command for category {}: `{:?}`", category, command);
-	} else if child.unwrap().status.success() == false {
-		warn!("Non-zero exit code for category {}, command {:?}", category, &command);
+	match child {
+		Err(err) =>
+			warn!("Failed to run command '{}' for category {}, error is {}", executable_name, category, err),
+		Ok(child) => if !child.status.success() {
+			warn!("Non-zero exit code for category {}, command {:?}", category, &category_command)
+		},
 	}
 }
 
@@ -328,24 +340,28 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 	let category = get_category(&activity_info, dirs);
 	run_category_command(conf, &category, &activity_info.window_name);
 
+	let file_path = image_dir.join(LOG_FILE_NAME);
 	let mut file = OpenOptions::new()
 		.append(true).create(true)
-		.open(image_dir.join(LOG_FILE_NAME)).unwrap();
+		.open(&file_path).unwrap_or_else(|err| panic!("failed to open log file {:?}, {}", file_path, err));
 	let log_line = format!("{} {} {}",
 		Utc::now().format(DATE_FORMAT),
 		category,
 		activity_info.window_name.chars().take(WINDOW_MAX_LENGTH).collect::<String>());//todo vn
 	info!("logging: {}", log_line);
-	file.write_all(log_line.as_bytes()).unwrap();
-	file.write_all("\n".as_bytes()).unwrap();
+	file.write_all(log_line.as_bytes()).unwrap_or_else(|err| panic!("Failed to write to log file {:?}, {}", file_path, err));
+	file.write_all("\n".as_bytes()).unwrap_or_else(|err| panic!("Failed to write newline to log file {:?}, {}", file_path, err));
 }
 
 #[cfg(target_os = "linux")]
 fn add_to_autostart() {
+	let executable_name = env::current_exe().expect("failed to get current executable name");
+	let executable_name = executable_name.to_str().unwrap_or_else(|| panic!("failet to read executable name '{:?}' to string", executable_name));
 	let xdg_desktop = include_str!("../res/linux_autostart.desktop");
-	let file_str = xdg_desktop.replace("%PATH%", env::current_exe().unwrap().to_str().unwrap());
-	let file_path = UserDirs::new().unwrap().home_dir().join(".config/autostart/TimePlot.desktop");
-	ensure_file(&file_path, &file_str);
+	let xdg_desktop = xdg_desktop.replace("%PATH%", executable_name);
+	let file_path = UserDirs::new().expect("failed to calculate user dirs")
+		.home_dir().join(".config/autostart/TimePlot.desktop");
+	ensure_file(&file_path, &xdg_desktop);
 }
 #[cfg(not(target_os = "linux"))]
 fn add_to_autostart() {}
@@ -359,7 +375,8 @@ pub fn prepare_scripts(dirs: &ProjectDirs) { // main_prepare_files
 	use std::os::unix::fs::PermissionsExt;
 	let path = dirs.config_dir().join(MAC_SCRIPT_NAME);
 	ensure_file(&path, &include_str!("../res/macos_get_title.scpt"));
-	fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+	fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+		.unwrap_or_else(|err| panic!("failed to set permissions for {:?}, {}", path, err));
 }
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
 pub fn prepare_scripts(_: &ProjectDirs) {
@@ -388,11 +405,11 @@ fn main() {
 		.init();
 	debug!("{} version {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
-	let user_dirs = UserDirs::new().unwrap();
-	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").unwrap();
+	let user_dirs = UserDirs::new().expect("failed to calculate user dirs (like ~)");
+	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot").expect("failed to calculate ProjectDirs");
 	let image_dir = user_dirs.picture_dir().filter(|f| f.exists())
 		.map(|f| f.join("timeplot"))
-		.unwrap_or(dirs.data_local_dir().to_path_buf());
+		.unwrap_or_else(|| dirs.data_local_dir().to_path_buf());
 
 	default_env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/local/sbin");
 	default_env("DISPLAY", ":0.0");
@@ -414,17 +431,22 @@ fn main() {
 		add_to_autostart();
 	}
 	if conf.get_bool("beginner.show_directories").unwrap_or(true) {
-		open::that(dirs.config_dir()).err()
-			.map(|_| eprintln!("Debug: failed to `open` config directory"));
-		open::that(&image_dir).err().map(|_| eprintln!("Debug: failed to `open` image directory"));
+		if let Err(err) = open::that(dirs.config_dir()) {
+			eprintln!("Debug: failed to `open` config directory, {}", err);
+		}
+		if let Err(err) = open::that(&image_dir) {
+			eprintln!("Debug: failed to `open` image directory, {}", err);
+		}
 	}
 	prepare_scripts(&dirs);
 
-	let locked_file = File::open(dirs.config_dir()).unwrap();
+	let locked_file = File::open(dirs.config_dir()).expect("failed to open config directory for locking");
 	locked_file.try_lock_exclusive().expect("Another instance of timeplot is already running.");
 
 	loop {
-		conf.refresh().unwrap();
+		if let Err(err) = conf.refresh() {
+			warn!("Failed to refresh configuration, {}", err);
+		}
 		do_save_current(&dirs, &image_dir, &conf);
 		do_plot(&image_dir, &conf);
 		let sleep_min = conf.get_float("main.sleep_minutes").expect(CONFIG_PARSE_ERROR);
