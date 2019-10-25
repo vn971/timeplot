@@ -10,13 +10,13 @@ repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
 
 [dependencies]
-chrono = "0.4.7"
+chrono = "0.4.9"
 directories = "2.0.2"
-env_logger = "0.6.2"
+env_logger = "0.7.1"
 fs2 = "0.4.3"
-gnuplot = "0.0.31"
+gnuplot = "0.0.32"
 log = "0.4.8"
-open = "1.3.1"
+open = "1.3.2"
 
 [dependencies.config]
 version = "0.9.3"
@@ -24,7 +24,7 @@ default-features = false
 features = ["toml"]
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.7", features = ["winuser"] }
+winapi = { version = "0.3.8", features = ["winuser"] }
 user32-sys = "0.2.0"
 
 

@@ -190,9 +190,13 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 		format!(" size {}", size_override)
 	};
 	figure.set_terminal(&format!("svg{}", size_suffix), image_dir.join("image.svg").to_str().unwrap());
-	figure.show();
+	if let Err(err) = figure.show() {
+		warn!("Failed to plot svg image, {}", err);
+	};
 	figure.set_terminal(&format!("pngcairo{}", size_suffix), image_dir.join("image.png").to_str().unwrap());
-	figure.show();
+	if let Err(err) = figure.show() {
+		warn!("Failed to plot png image, {}", err);
+	};
 }
 
 
