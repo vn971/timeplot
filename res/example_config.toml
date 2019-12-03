@@ -10,7 +10,8 @@ sleep_minutes=1.0  # how long to wait for next iteration
 
 [graph]
 line_format="%category% (%hours%h)"  # Set to "" to hide completely.
-show_day_labels=true
+show_date = true
+show_day_ticks=true
 size="1920,300"
 height_scale=2.0
 smoothing=1.0

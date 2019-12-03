@@ -194,9 +194,12 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	let size_override = conf.get_str("graph.size").expect(CONFIG_PARSE_ERROR);
 	let size_override = size_override.trim();
 	let label_format = conf.get_str("graph.line_format").expect(CONFIG_PARSE_ERROR);
-	let show_days = conf
-		.get_bool("graph.show_day_labels")
+	let show_date = conf.get_bool("graph.show_date").expect(CONFIG_PARSE_ERROR);
+	let show_day_ticks = conf
+		.get_bool("graph.show_day_ticks")
+		.or_else(|_| conf.get_bool("graph.show_day_labels"))
 		.expect(CONFIG_PARSE_ERROR);
+
 	{
 		let axes = figure
 			.axes2d()
@@ -208,7 +211,16 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 					.get_float("graph.height_scale")
 					.expect(CONFIG_PARSE_ERROR)),
 			);
-		if show_days {
+		if show_date {
+			axes.set_x_label(
+				&Local::now()
+					.naive_local()
+					.format("%Y-%m-%d %H:%M")
+					.to_string(),
+				&[],
+			);
+		}
+		if show_day_ticks {
 			axes.set_x_ticks(
 				Some((Fix(1.0), 0)),
 				&[OnAxis(false), Inward(false), Mirror(false)],

@@ -10,7 +10,7 @@ repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
 
 [dependencies]
-chrono = "0.4.9"
+chrono = "0.4.10"
 directories = "2.0.2"
 env_logger = "0.7.1"
 fs2 = "0.4.3"
