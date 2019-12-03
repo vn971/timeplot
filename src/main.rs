@@ -575,9 +575,13 @@ fn main() {
 
 	let locked_file =
 		File::open(dirs.config_dir()).expect("failed to open config directory for locking");
-	locked_file
-		.try_lock_exclusive()
-		.expect("Another instance of timeplot is already running.");
+	if let Err(err) = locked_file.try_lock_exclusive() {
+		eprintln!(
+			"Another instance of timeplot is already running, could not acquire lock: {}",
+			err
+		);
+		std::process::exit(1)
+	}
 
 	loop {
 		if let Err(err) = conf.refresh() {
