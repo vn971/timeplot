@@ -232,7 +232,8 @@ fn do_plot(image_dir: &PathBuf, conf: &Config) {
 		let mut categories: Vec<_> = categories.values().collect();
 		categories.sort_unstable_by(|a, b| a.time_impact.cmp(&b.time_impact));
 		for category in categories {
-			let hours = format!("{:.0}", category.time_impact as f64 / 60.0 / 60.0);
+			let minutes = (category.time_impact as f64 / 60.0).floor() as i64;
+			let hours = format!("{}:{}", minutes / 60, minutes % 60);
 			let caption = label_format
 				.replace("%hours%", &hours)
 				.replace("%category%", &category.category_name);
