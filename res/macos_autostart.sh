@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 
-if [[ $EUID -ne 0 ]]; then
-	echo "This script must be run as root"
-	exit 1
-fi
-
 if [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
 	echo "Cargo is not in your path, please fix this and try again"
 	exit 1
 fi
 
-PLIST_PATH="/Library/LaunchAgents/timeplot.plist"
+PLIST_PATH="$HOME/Library/LaunchAgents/timeplot.plist"
 TIMEPLOT_PATH="$HOME/.cargo/bin/timeplot"
 
 cat >"$PLIST_PATH" <<EOF
