@@ -484,7 +484,7 @@ fn add_to_autostart() {
 	let executable_name = env::current_exe().expect("failed to get current executable name");
 	let executable_name = executable_name.to_str().unwrap_or_else(|| {
 		panic!(
-			"failet to read executable name '{:?}' to string",
+			"failed to read executable name '{:?}' to string",
 			executable_name
 		)
 	});
@@ -496,7 +496,33 @@ fn add_to_autostart() {
 		.join(".config/autostart/TimePlot.desktop");
 	ensure_file(&file_path, &xdg_desktop);
 }
-#[cfg(not(target_os = "linux"))]
+
+#[cfg(target_os = "macos")]
+fn add_to_autostart() {
+	let executable_name = env::current_exe().expect("failed to get current executable name");
+	let executable_name = executable_name.to_str().unwrap_or_else(|| {
+		panic!(
+			"failed to read executable name '{:?}' to string",
+			executable_name
+		)
+	});
+	let plist = include_str!("../res/timeplot.plist");
+	let plist = plist.replace("%PATH%", executable_name);
+	let file_path = UserDirs::new()
+		.expect("failed to calculate user dirs")
+		.home_dir()
+		.join("Library/LaunchAgents/timeplot.plist");
+	ensure_file(&file_path, &plist);
+
+	Command::new("launchctl")
+		.arg("load")
+		.arg("-w")
+		.arg(file_path)
+		.output()
+		.expect("failed to execute");
+}
+
+#[cfg(target_os = "windows")]
 fn add_to_autostart() {}
 
 #[cfg(target_os = "windows")]
