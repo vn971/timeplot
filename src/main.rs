@@ -480,7 +480,7 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 }
 
 fn exe_name() -> Option<String> {
-	std::env::current_exe()
+	env::current_exe()
 		.ok()
 		.map(PathBuf::into_os_string)
 		.and_then(|exe| exe.into_string().ok())
