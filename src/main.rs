@@ -520,7 +520,7 @@ fn add_to_autostart() {
 		.arg("-w")
 		.arg(file_path)
 		.output()
-		.expect("failed to execute");
+		.expect("failed to execute launchctl");
 }
 
 #[cfg(all(not(target_os = "linux"), not(target_os = "macos")))]
