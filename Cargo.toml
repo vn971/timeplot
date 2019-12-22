@@ -1,6 +1,6 @@
 [package]
 name = "timeplot"
-version = "0.7.15"
+version = "0.7.16"
 description = "Personal activity tracker & graph plotter"
 edition = "2018"
 authors = [
@@ -8,6 +8,7 @@ authors = [
   "jbpratt <29494941+jbpratt78@users.noreply.github.com>"
 ]
 license="GPL-3.0-or-later"
+maintenance = { status = "passively-maintained" }
 keywords = ["graph", "plot", "time", "tracker", "logger"]
 repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
@@ -20,11 +21,7 @@ fs2 = "0.4.3"
 gnuplot = "0.0.32"
 log = "0.4.8"
 open = "1.3.2"
-
-[dependencies.config]
-version = "0.9.3"
-default-features = false
-features = ["toml"]
+config = { version = "0.10.1", default-features = false, features = ["toml"] }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.8", features = ["winuser"] }
