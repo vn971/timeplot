@@ -479,20 +479,19 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 	});
 }
 
-fn exe_name() -> Option<String> {
-	env::current_exe()
-		.ok()
-		.map(PathBuf::into_os_string)
-		.and_then(|exe| exe.into_string().ok())
+fn _executable_name() -> String {
+	let exe = env::current_exe()
+		.unwrap_or_else(|err| panic!("Failed to get current executable, {}", err));
+	let exe = exe
+		.to_str()
+		.unwrap_or_else(|| panic!("Failed to parse executable name to string"));
+	exe.to_string()
 }
 
 #[cfg(target_os = "linux")]
 fn add_to_autostart() {
-	let executable_name =
-		exe_name().unwrap_or_else(|| panic!("failed to read the executable name to string",));
-
 	let xdg_desktop = include_str!("../res/linux_autostart.desktop");
-	let xdg_desktop = xdg_desktop.replace("%PATH%", executable_name.as_str());
+	let xdg_desktop = xdg_desktop.replace("%PATH%", &_executable_name());
 	let file_path = UserDirs::new()
 		.expect("failed to calculate user dirs")
 		.home_dir()
@@ -502,11 +501,8 @@ fn add_to_autostart() {
 
 #[cfg(target_os = "macos")]
 fn add_to_autostart() {
-	let executable_name =
-		exe_name().unwrap_or_else(|| panic!("failed to read the executable name to string",));
-
 	let plist = include_str!("../res/timeplot.plist");
-	let plist = plist.replace("%PATH%", executable_name.as_str());
+	let plist = plist.replace("%PATH%", &_executable_name());
 	let file_path = UserDirs::new()
 		.expect("failed to calculate user dirs")
 		.home_dir()
