@@ -12,7 +12,7 @@
     <true/>
     <key>KeepAlive</key>
     <false/>
-    <key>LaunchOnlyOnce</key>        
+    <key>LaunchOnlyOnce</key>
     <true/>
     <key>StandardOutPath</key>
     <string>/tmp/startup.stdout</string>

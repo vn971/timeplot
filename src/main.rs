@@ -501,7 +501,7 @@ fn add_to_autostart() {
 
 #[cfg(target_os = "macos")]
 fn add_to_autostart() {
-	let plist = include_str!("../res/timeplot.plist");
+	let plist = include_str!("../res/macos_timeplot.plist");
 	let plist = plist.replace("%PATH%", &_executable_name());
 	let file_path = UserDirs::new()
 		.expect("failed to calculate user dirs")
