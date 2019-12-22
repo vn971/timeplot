@@ -8,7 +8,6 @@ authors = [
   "jbpratt <29494941+jbpratt78@users.noreply.github.com>"
 ]
 license="GPL-3.0-or-later"
-maintenance = { status = "passively-maintained" }
 keywords = ["graph", "plot", "time", "tracker", "logger"]
 repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
