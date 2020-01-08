@@ -259,4 +259,5 @@ pub fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	if let Err(err) = figure.show() {
 		warn!("Failed to plot png image, {}", err);
 	};
+	figure.close();
 }
