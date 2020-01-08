@@ -20,9 +20,9 @@ extern crate user32;
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
-use crate::timeplot_constants::LOG_FILE_NAME;
-use crate::timeplot_constants::DATE_FORMAT;
 use crate::timeplot_constants::CONFIG_PARSE_ERROR;
+use crate::timeplot_constants::DATE_FORMAT;
+use crate::timeplot_constants::LOG_FILE_NAME;
 use chrono::prelude::*;
 use config::Config;
 use directories::ProjectDirs;

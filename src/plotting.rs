@@ -11,9 +11,9 @@ extern crate user32;
 extern crate winapi;
 
 use crate::timeplot_constants::CONFIG_PARSE_ERROR;
+use crate::timeplot_constants::DATE_FORMAT;
 use crate::timeplot_constants::FILE_SEEK;
 use crate::timeplot_constants::LOG_FILE_NAME;
-use crate::timeplot_constants::DATE_FORMAT;
 use chrono::prelude::*;
 use config::Config;
 use std::cmp::min;
@@ -24,7 +24,6 @@ use std::io::BufReader;
 use std::io::SeekFrom;
 use std::ops::Not;
 use std::path::PathBuf;
-
 
 /// The part of log entry that needs to be parsed.
 struct LogEntry {
