@@ -194,7 +194,7 @@ pub fn do_plot(image_dir: &PathBuf, conf: &Config) {
 			axes.set_x_label(
 				&Local::now()
 					.naive_local()
-					.format("%Y-%m-%d %H:%M")
+					.format("created at: %Y-%m-%d %H:%M")
 					.to_string(),
 				&[],
 			);
