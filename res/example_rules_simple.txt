@@ -2,9 +2,13 @@
 #
 # Empty lines and comments are ignored.
 
+# use your own rules, below is just an example!
+
 work intellij idea
 work emacs
-work Git Gui
+work  atom
+work git gui
+work gitk
 work Stack Overflow
 
 personal audacious
@@ -16,12 +20,19 @@ fun wesnoth
 fun hedgewars
 fun supertuxkart
 fun smplayer
+fun vlc
 
-# social networks (fb, twitter, russian "vkonkakte")
+# social media sites (top 10 from the internet)
 fun facebook
+fun WhatsApp
+fun messenger
+fun wechat
+fun instagram
+fun QQ
+fun tumblr
+fun qzone
+fun tik tok
 fun twitter
-fun новости
-fun новые комментарии
 
 # if nothing else matched:
 work  at master
