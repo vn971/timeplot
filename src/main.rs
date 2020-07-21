@@ -16,8 +16,6 @@ extern crate open;
 #[macro_use]
 extern crate log;
 #[cfg(target_os = "windows")]
-extern crate user32;
-#[cfg(target_os = "windows")]
 extern crate winapi;
 
 use crate::timeplot_constants::CONFIG_PARSE_ERROR;
@@ -100,10 +98,11 @@ fn get_window_activity_info(dirs: &ProjectDirs) -> WindowActivityInformation {
 }
 #[cfg(target_os = "windows")]
 fn get_window_activity_info(_: &ProjectDirs) -> WindowActivityInformation {
+	use winapi::um::winuser;
 	let mut vec = Vec::with_capacity(WINDOW_MAX_LENGTH);
 	unsafe {
-		let hwnd = user32::GetForegroundWindow();
-		let err_code = user32::GetWindowTextW(hwnd, vec.as_mut_ptr(), WINDOW_MAX_LENGTH as i32);
+		let hwnd = winuser::GetForegroundWindow();
+		let err_code = winuser::GetWindowTextW(hwnd, vec.as_mut_ptr(), WINDOW_MAX_LENGTH as i32);
 		if err_code != 0 {
 			warn!("window name extraction failed!");
 		}

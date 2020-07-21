@@ -5,10 +5,6 @@ extern crate env_logger;
 extern crate fs2;
 extern crate gnuplot;
 extern crate open;
-#[cfg(target_os = "windows")]
-extern crate user32;
-#[cfg(target_os = "windows")]
-extern crate winapi;
 
 use std::env;
 
