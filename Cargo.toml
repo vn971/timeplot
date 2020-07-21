@@ -1,6 +1,6 @@
 [package]
 name = "timeplot"
-version = "0.8.0"
+version = "0.8.1"
 description = "Personal activity tracker & graph plotter"
 edition = "2018"
 authors = [
