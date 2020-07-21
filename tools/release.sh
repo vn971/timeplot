@@ -16,7 +16,7 @@ fi
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo check --target i686-pc-windows-gnu
-cargo check --target i686-apple-darwin
+cargo check --target x86_64-apple-darwin
 cargo build --release
 cargo build --target=i686-unknown-linux-musl --release
 
