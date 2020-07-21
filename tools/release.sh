@@ -20,8 +20,10 @@ cargo check --target x86_64-apple-darwin
 cargo build --release
 cargo build --target=i686-unknown-linux-musl --release
 
-upx --ultra-brute target/i686-unknown-linux-musl/release/timeplot
-cp target/i686-unknown-linux-musl/release/timeplot .vasya-personal/tpl/
+cp -a target/i686-unknown-linux-musl/release/timeplot \
+  target/i686-unknown-linux-musl/release/timeplot-upx
+upx --ultra-brute target/i686-unknown-linux-musl/release/timeplot-upx
+cp target/i686-unknown-linux-musl/release/timeplot-upx .vasya-personal/tpl/timeplot
 
 cargo publish
 
