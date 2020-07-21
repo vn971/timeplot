@@ -222,7 +222,7 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 	info!("logging: {}", log_line);
 	file.write_all(log_line.as_bytes())
 		.unwrap_or_else(|err| panic!("Failed to write to log file {:?}, {}", file_path, err));
-	file.write_all("\n".as_bytes()).unwrap_or_else(|err| {
+	file.write_all(b"\n").unwrap_or_else(|err| {
 		panic!(
 			"Failed to write newline to log file {:?}, {}",
 			file_path, err
