@@ -6,6 +6,7 @@ show_directories=true  # opens config directory and the resulting image
 
 [main]
 plot_days=5.0
+plot_truncate_to_5am=true
 sleep_minutes=1.0  # how long to wait for next iteration
 
 [graph]

@@ -11,6 +11,7 @@ use crate::timeplot_constants::DATE_FORMAT;
 use crate::timeplot_constants::FILE_SEEK;
 use crate::timeplot_constants::LOG_FILE_NAME;
 use chrono::prelude::*;
+use chrono::Duration;
 use config::Config;
 use std::cmp::min;
 use std::collections::HashMap;
@@ -19,6 +20,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::SeekFrom;
 use std::ops::Not;
+use std::ops::Sub;
 use std::path::PathBuf;
 
 /// The part of log entry that needs to be parsed.
@@ -58,8 +60,21 @@ pub fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	let smoothing = -plot_days as f32 * smoothing as f32 * 100.0;
 	let data_absence_modifier = (sleep_seconds as f32 / smoothing).exp2();
 
-	let time_now = Utc::now().timestamp_millis() as u64 / 1000;
-	let min_time = time_now - (plot_days * 60.0 * 60.0 * 24.0) as u64;
+	let time_now = Utc::now();
+	let min_time = time_now.sub(Duration::seconds((plot_days * 60.0 * 60.0 * 24.0) as i64));
+	let min_time = if conf.get_bool("main.plot_truncate_to_5am").unwrap_or(false) {
+		let mut min_time = min_time.with_timezone(&chrono::Local);
+		min_time = min_time.with_hour(5).unwrap();
+		min_time = min_time.with_minute(0).unwrap();
+		min_time = min_time.with_second(0).unwrap();
+		if min_time > time_now {
+			min_time = min_time.sub(Duration::days(1));
+		};
+		min_time.with_timezone(&chrono::Utc)
+	} else {
+		min_time
+	};
+	let min_time = min_time.timestamp() as u64;
 	let log_file = image_dir.join(LOG_FILE_NAME);
 	let log_file = File::open(&log_file)
 		.unwrap_or_else(|err| panic!("Failed to open log file {:?}, {}", log_file, err));
@@ -105,7 +120,7 @@ pub fn do_plot(image_dir: &PathBuf, conf: &Config) {
 	let mut categories: HashMap<&str, CategoryData> = HashMap::new();
 	// TODO: pre-fill categories to have deterministic order
 
-	let mut last_time = time_now;
+	let mut last_time = time_now.timestamp() as u64;
 	for line in lines.iter_mut() {
 		if line.epoch_seconds < min_time {
 			continue;
