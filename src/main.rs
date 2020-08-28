@@ -2,31 +2,25 @@
 static GLOBAL: std::alloc::System = std::alloc::System;
 
 mod autostart;
+mod command_line_interface;
 mod file_operations;
 mod plotting;
 mod timeplot_constants;
 
-extern crate chrono;
-extern crate config;
-extern crate directories;
-extern crate env_logger;
-extern crate fs2;
-extern crate gnuplot;
-extern crate open;
-#[macro_use]
-extern crate log;
-#[cfg(target_os = "windows")]
-extern crate winapi;
-
+use crate::command_line_interface::CLIOptions;
 use crate::timeplot_constants::CONFIG_PARSE_ERROR;
 use crate::timeplot_constants::DATE_FORMAT;
 use crate::timeplot_constants::LOG_FILE_NAME;
+
 use chrono::prelude::*;
 use config::Config;
 use directories::ProjectDirs;
 use directories::UserDirs;
 use env_logger::Env;
 use fs2::FileExt;
+use log::debug;
+use log::info;
+use log::warn;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -217,7 +211,7 @@ fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
 			.chars()
 			.take(WINDOW_MAX_LENGTH)
 			.collect::<String>()
-	); //todo vn
+	);
 	info!("logging: {}", log_line);
 	file.write_all(log_line.as_bytes())
 		.unwrap_or_else(|err| panic!("Failed to write to log file {:?}, {}", file_path, err));
@@ -267,6 +261,7 @@ fn main() {
 		env!("CARGO_PKG_NAME"),
 		env!("CARGO_PKG_VERSION")
 	);
+	let opt: &CLIOptions = &*command_line_interface::PARSED;
 
 	let user_dirs = UserDirs::new().expect("failed to calculate user dirs (like ~)");
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot")
@@ -293,8 +288,13 @@ fn main() {
 		&dirs.config_dir().join(RULES_FILE_NAME),
 		&include_str!("../res/example_rules_simple.txt"),
 	);
-	let config_path = dirs.config_dir().join("config.toml");
-	file_operations::ensure_file(&config_path, include_str!("../res/example_config.toml"));
+	let config_path = if let Some(config) = &opt.config {
+		config.to_path_buf()
+	} else {
+		let result = dirs.config_dir().join("config.toml");
+		file_operations::ensure_file(&result, include_str!("../res/example_config.toml"));
+		result
+	};
 
 	let mut conf = config::Config::default();
 	conf.merge(config::File::with_name(config_path.to_str().unwrap()))

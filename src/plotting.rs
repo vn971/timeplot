@@ -13,6 +13,7 @@ use crate::timeplot_constants::LOG_FILE_NAME;
 use chrono::prelude::*;
 use chrono::Duration;
 use config::Config;
+use log::warn;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::fs::File;
