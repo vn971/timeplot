@@ -286,7 +286,7 @@ fn main() {
 
 	file_operations::ensure_file(
 		&dirs.config_dir().join(RULES_FILE_NAME),
-		&include_str!("../res/example_rules_simple.txt"),
+		include_str!("../res/example_rules_simple.txt"),
 	);
 	let config_path = if let Some(config) = &opt.config {
 		config.to_path_buf()

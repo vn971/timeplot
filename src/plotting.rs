@@ -22,7 +22,7 @@ use std::io::BufReader;
 use std::io::SeekFrom;
 use std::ops::Not;
 use std::ops::Sub;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// The part of log entry that needs to be parsed.
 struct LogEntry {
@@ -50,7 +50,7 @@ struct CategoryData {
 	values: Vec<f32>,
 }
 
-pub fn do_plot(image_dir: &PathBuf, conf: &Config) {
+pub fn do_plot(image_dir: &Path, conf: &Config) {
 	use gnuplot::*;
 	let sleep_seconds = conf
 		.get_float("main.sleep_minutes")
