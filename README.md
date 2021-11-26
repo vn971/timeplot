@@ -18,7 +18,8 @@ Visualizing your performance can help you understand how certain things impact y
 ```
 * If the category is wrong, fix the category right in the log.
 * Edit rules to auto-categorize this window name in the future
-* Wait for timeplot to re-draw the image
+* Wait for timeplot to re-draw the image in your Pictures directory if it exists,
+    or otherwise in project data directory   
 <img src="docs/png.png" width="800" /><!-- screenshot params: pngcairo 1200,170, 2.9 -->
 * Whenever you want to check the text log, or see if it can be improved, return 3 steps back.
 
