@@ -13,16 +13,16 @@ repository = "https://github.com/vn971/timeplot"
 readme = "README.md"
 
 [dependencies]
-chrono = "0.4.13"
-config = { version = "0.10.1", default-features = false, features = ["toml"] }
-directories = "3.0.1"
-env_logger = "0.7.1"
+chrono = "0.4.19"
+config = { version = "0.11.0", default-features = false, features = ["toml"] }
+directories = "4.0.1"
+env_logger = "0.9.0"
 fs2 = "0.4.3"
 gnuplot = "0.0.37"
 lazy_static = "1.4.0"
-log = "0.4.11"
-open = "1.4.0"
-structopt = { version = "0.3.15", features = ["color"] }
+log = "0.4.14"
+open = "2.0.1"
+structopt = { version = "0.3.25", features = ["color"] }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["winuser"] }
