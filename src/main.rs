@@ -27,7 +27,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
@@ -183,7 +183,7 @@ fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 	}
 }
 
-fn do_save_current(dirs: &ProjectDirs, image_dir: &PathBuf, conf: &Config) {
+fn do_save_current(dirs: &ProjectDirs, image_dir: &Path, conf: &Config) {
 	let mut activity_info = get_window_activity_info(dirs);
 	activity_info.window_name = activity_info.window_name.trim().replace("\n", " ");
 	if activity_info.idle_seconds > 60 * 3 {

@@ -10,9 +10,8 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::ops::Not;
 use std::path::Path;
-use std::path::PathBuf;
 
-pub fn ensure_file(filename: &PathBuf, content: &str) {
+pub fn ensure_file(filename: &Path, content: &str) {
 	if Path::new(&filename).exists().not() {
 		let mut file = OpenOptions::new()
 			.create(true)
