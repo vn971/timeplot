@@ -185,7 +185,7 @@ fn run_category_command(conf: &Config, category: &str, window_name: &str) {
 
 fn do_save_current(dirs: &ProjectDirs, image_dir: &Path, conf: &Config) {
 	let mut activity_info = get_window_activity_info(dirs);
-	activity_info.window_name = activity_info.window_name.trim().replace("\n", " ");
+	activity_info.window_name = activity_info.window_name.trim().replace('\n', " ");
 	if activity_info.idle_seconds > 60 * 3 {
 		info!(
 			"skipping log due to inactivity time: {}sec, {}",
@@ -296,8 +296,10 @@ fn main() {
 		result
 	};
 
-	let mut conf = config::Config::default();
-	conf.merge(config::File::with_name(config_path.to_str().unwrap()))
+	let config_builder =
+		Config::builder().add_source(config::File::with_name(config_path.to_str().unwrap()));
+	let mut conf = config_builder
+		.build_cloned()
 		.expect("Failed to read config file");
 
 	if conf
@@ -327,9 +329,10 @@ fn main() {
 	}
 
 	loop {
-		if let Err(err) = conf.refresh() {
-			warn!("Failed to refresh configuration, {}", err);
-		}
+		match config_builder.build_cloned() {
+			Ok(c) => conf = c,
+			Err(err) => warn!("Failed to refresh configuration, {}", err),
+		};
 		do_save_current(&dirs, &image_dir, &conf);
 		plotting::do_plot(&image_dir, &conf);
 		let sleep_min = conf

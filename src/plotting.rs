@@ -34,7 +34,7 @@ fn parse_log_line(line: &str) -> LogEntry {
 	let split: Vec<&str> = line.splitn(3, ' ').collect();
 	let parse_error = format!("Failed to parse log entry {}", line);
 	let time = Utc
-		.datetime_from_str(split.get(0).expect(&parse_error), DATE_FORMAT)
+		.datetime_from_str(split.first().expect(&parse_error), DATE_FORMAT)
 		.expect(&parse_error);
 	LogEntry {
 		epoch_seconds: time.timestamp_millis() as u64 / 1000,
@@ -137,7 +137,7 @@ pub fn do_plot(image_dir: &Path, conf: &Config) {
 				CategoryData {
 					category_name: line.category.to_string(),
 					color: conf
-						.get_str(&format!("category.{}.color", &line.category))
+						.get_string(&format!("category.{}.color", &line.category))
 						.unwrap_or_else(|_| "black".to_string()),
 					time_impact: 0,
 					values: if is_empty { Vec::new() } else { vec![0.0] },
@@ -182,9 +182,11 @@ pub fn do_plot(image_dir: &Path, conf: &Config) {
 
 	let mut figure = Figure::new();
 
-	let size_override = conf.get_str("graph.size").expect(CONFIG_PARSE_ERROR);
+	let size_override = conf.get_string("graph.size").expect(CONFIG_PARSE_ERROR);
 	let size_override = size_override.trim();
-	let label_format = conf.get_str("graph.line_format").expect(CONFIG_PARSE_ERROR);
+	let label_format = conf
+		.get_string("graph.line_format")
+		.expect(CONFIG_PARSE_ERROR);
 	let show_date = conf.get_bool("graph.show_date").expect(CONFIG_PARSE_ERROR);
 	let show_day_ticks = conf
 		.get_bool("graph.show_day_ticks")
