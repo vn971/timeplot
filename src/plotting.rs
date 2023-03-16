@@ -232,7 +232,9 @@ pub fn do_plot(image_dir: &Path, conf: &Config) {
 				.replace("%category%", &category.category_name);
 			let day_starts_at_00 = conf.get_bool("graph.day_starts_at_00").unwrap_or(true);
 			let time_now = if day_starts_at_00 {
-				Utc::now().date().and_hms(0, 0, 0).timestamp_millis() / 1000
+				let date = Utc::now().date_naive().and_hms_opt(0, 0, 0);
+				let date = date.unwrap_or_else(|| panic!("Unable to get current timestamp"));
+				date.timestamp_millis() / 1000
 			} else {
 				Utc::now().timestamp_millis() / 1000
 			};

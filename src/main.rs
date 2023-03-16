@@ -261,7 +261,7 @@ fn main() {
 		env!("CARGO_PKG_NAME"),
 		env!("CARGO_PKG_VERSION")
 	);
-	let opt: &CLIOptions = &*command_line_interface::PARSED;
+	let opt: &CLIOptions = &command_line_interface::PARSED;
 
 	let user_dirs = UserDirs::new().expect("failed to calculate user dirs (like ~)");
 	let dirs = ProjectDirs::from("com.gitlab", "vn971", "timeplot")

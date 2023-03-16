@@ -1,5 +1,7 @@
-#!/bin/bash -euET
+#!/bin/bash
 {
+set -euETo pipefail
+set -x
 
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings

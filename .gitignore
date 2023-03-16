@@ -1,4 +1,4 @@
-target
+target/
 
 #### helper symlinks for development. For example:
 #### ln -s ~/.config/timeplot .config
